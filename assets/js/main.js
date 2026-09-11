@@ -703,16 +703,17 @@ async function compilarFase(fase) {
             let totalInstrucciones = 0;
 
             const formatInstruction = (inst) => {
-                const safe = inst.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return safe
-                    .replace(/\b(ret|READ|WRITE)\b/g, '<span class="tac-keyword">$1</span>')
-                    .replace(/\b(t\d+)\b/g, '<span class="tac-temp">$1</span>')
-                    .replace(/(=|\+|\-|\*|\/|\^|%)/g, '<span class="tac-op">$1</span>')
-                    .replace(/\b(\d+)\b/g, '<span class="tac-val">$1</span>')
-                    .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*<\/span>)/g, (match) => {
-                        if (['ret', 'READ', 'WRITE', 'span', 'class', 'tac'].includes(match)) return match;
-                        return `<span class="tac-var">${match}</span>`;
-                    });
+                // Tokenizador seguro para evitar colisiones con tags HTML
+                const tokenRegex = /(ret|READ|WRITE)\b|(t\d+)\b|([0-9]+(?:\.[0-9]+)?)\b|([\$a-zA-Z_][a-zA-Z0-9_]*)|([=+\-*\/^%])|(\S+)/g;
+                return inst.replace(tokenRegex, (match, kw, temp, num, id, op, other) => {
+                    if (kw) return `<span class="tac-keyword">${kw}</span>`;
+                    if (temp) return `<span class="tac-temp">${temp}</span>`;
+                    if (num) return `<span class="tac-val">${num}</span>`;
+                    if (id) return `<span class="tac-var">${id}</span>`;
+                    if (op) return `<span class="tac-op">${op}</span>`;
+                    const safe = (other || match).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return safe;
+                });
             };
 
             lineas.forEach(linea => {
