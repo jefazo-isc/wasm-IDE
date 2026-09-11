@@ -695,6 +695,105 @@ async function compilarFase(fase) {
             }
             html += `</tbody></table></div>`;
             panelActivo.innerHTML = html;
+        } else if (fase === 'intermedio') {
+            window.lastIntermedioRaw = res;
+            const lineas = res.split('\n');
+            let bloquesHTML = '';
+            let bloqueActual = null;
+            let totalInstrucciones = 0;
+
+            const formatInstruction = (inst) => {
+                const safe = inst.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return safe
+                    .replace(/\b(ret|READ|WRITE)\b/g, '<span class="tac-keyword">$1</span>')
+                    .replace(/\b(t\d+)\b/g, '<span class="tac-temp">$1</span>')
+                    .replace(/(=|\+|\-|\*|\/|\^|%)/g, '<span class="tac-op">$1</span>')
+                    .replace(/\b(\d+)\b/g, '<span class="tac-val">$1</span>')
+                    .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*<\/span>)/g, (match) => {
+                        if (['ret', 'READ', 'WRITE', 'span', 'class', 'tac'].includes(match)) return match;
+                        return `<span class="tac-var">${match}</span>`;
+                    });
+            };
+
+            lineas.forEach(linea => {
+                const l = linea.trim();
+                if (!l || l.startsWith('---') || l.startsWith('Generación finalizada')) return;
+
+                const matchComment = l.match(/^;\s*Traducción de la línea\s+(\d+)/i);
+                if (matchComment) {
+                    if (bloqueActual) {
+                        bloquesHTML += renderTacBlock(bloqueActual);
+                    }
+                    bloqueActual = {
+                        numLinea: matchComment[1],
+                        instrucciones: []
+                    };
+                } else if (bloqueActual) {
+                    bloqueActual.instrucciones.push(l);
+                    totalInstrucciones++;
+                } else {
+                    if (!bloqueActual) {
+                        bloqueActual = { numLinea: null, instrucciones: [] };
+                    }
+                    bloqueActual.instrucciones.push(l);
+                    totalInstrucciones++;
+                }
+            });
+
+            if (bloqueActual && bloqueActual.instrucciones.length > 0) {
+                bloquesHTML += renderTacBlock(bloqueActual);
+            }
+
+            function renderTacBlock(bloque) {
+                const header = bloque.numLinea 
+                    ? `<div class="tac-block-header" onclick="irALinea(${bloque.numLinea})" title="Clic para ir a la línea ${bloque.numLinea} en el editor">
+                        <span class="tac-line-badge"><i data-lucide="corner-down-right" style="width:12px; height:12px;"></i> Línea ${bloque.numLinea}</span>
+                        <span style="font-size:10px;"><i data-lucide="external-link" style="width:11px; height:11px; vertical-align:-1px;"></i> Ir al código</span>
+                       </div>`
+                    : `<div class="tac-block-header"><span>Instrucciones</span></div>`;
+
+                let rows = '';
+                bloque.instrucciones.forEach((inst, idx) => {
+                    rows += `
+                        <div class="tac-inst-row">
+                            <span class="tac-inst-num">${idx + 1}.</span>
+                            <span class="tac-inst-content">${formatInstruction(inst)}</span>
+                        </div>
+                    `;
+                });
+
+                return `
+                    <div class="tac-block">
+                        ${header}
+                        <div class="tac-block-body">
+                            ${rows}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let html = `
+                <div class="tac-container">
+                    <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div class="panel-title-glow">=== CÓDIGO INTERMEDIO (3AC) ===</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top:2px;">Código de 3 direcciones generado</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn-reload" onclick="copiarCodigoIntermedio()" title="Copiar código al portapapeles" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="copy" style="width:14px; height:14px;"></i> Copiar</button>
+                            <button class="btn-reload" onclick="compilarFase('intermedio')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                        </div>
+                    </div>
+                    <div class="tac-code-area">
+                        ${bloquesHTML || '<div style="color:var(--text-muted); text-align:center; padding: 20px; font-style:italic;">No se generaron instrucciones intermedias.</div>'}
+                        <div class="tac-summary-badge">
+                            <i data-lucide="check-circle-2" style="width:15px; height:15px;"></i>
+                            <span>Generación finalizada (${totalInstrucciones} instrucciones en 3 direcciones)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            panelActivo.innerHTML = html;
         } else if (panelActivo) {
             panelActivo.textContent = res;
         }
@@ -785,6 +884,18 @@ function exportarSintactico() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     mostrarNotificacion('<i data-lucide="download" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Árbol exportado');
+}
+
+function copiarCodigoIntermedio() {
+    if (!window.lastIntermedioRaw) {
+        mostrarNotificacion("No hay código intermedio generado para copiar", true);
+        return;
+    }
+    navigator.clipboard.writeText(window.lastIntermedioRaw).then(() => {
+        mostrarNotificacion('<i data-lucide="check" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Código 3AC copiado al portapapeles');
+    }).catch(() => {
+        mostrarNotificacion("Error al copiar al portapapeles", true);
+    });
 }
 
 function showBottomPanel(e, id) {
