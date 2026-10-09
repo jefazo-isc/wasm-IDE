@@ -1022,7 +1022,7 @@ function mostrarNotificacion(msg, esError = false) {
 function verLogErrores() {
     const logInfo = `=== LOG DEL IDE INDÓMITO (CLIENT-SIDE) ===\n\n` +
         `Estado: Activo\n` +
-        `Plataforma: Navegador Web (Cero Dependencias de PHP)\n` +
+        `Plataforma: Navegador Web (Client-Side Puro)\n` +
         `Analizador Léxico: Listo\n` +
         `Analizador Sintáctico AST: Listo\n` +
         `Analizador Semántico: Listo\n` +

@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Generador de Tabla de Símbolos (Client-side / WebAssembly Ready)
- * Port idéntico 1:1 de src/Compiler/simbolos.php
+ * Modulo Tabla de Simbolos Client-side
  */
 const SymbolTableGenerator = {
     generar(codigo) {

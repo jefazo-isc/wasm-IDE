@@ -12,11 +12,11 @@ echo Abriendo el navegador...
 :: Abre el navegador predeterminado automaticamente
 start http://localhost:8000
 
-:: Levanta el servidor local apuntando a la raiz del proyecto usando el PHP portable
+:: Levanta el servidor local apuntando a la raiz del proyecto usando Python o abriendo index.html
 echo.
 echo El servidor esta corriendo en: http://localhost:8000
 echo Presiona Ctrl+C para detener el servidor.
 echo.
 
 cd %~dp0
-php\php.exe -S localhost:8000
+python -m http.server 8000

@@ -1,5 +1,5 @@
 // ==========================================================================
-// ASISTENTE DE IA - INTEGRACIÓN CLIENT-SIDE (Cero dependencias de PHP)
+// ASISTENTE DE IA - INTEGRACIÓN CLIENT-SIDE
 // ==========================================================================
 
 let currentAIProvider = 'gemini';

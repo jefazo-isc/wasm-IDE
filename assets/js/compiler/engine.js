@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Motor Unificado del Compilador (Frontend & WebAssembly Ready)
- * Orquesta todas las fases del compilador en el cliente sin requerir servidor PHP.
+ * Orquesta todas las fases del compilador en el cliente.
  */
 let wasmInitPromise = null;
 let wasmModule = null;

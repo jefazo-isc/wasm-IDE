@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Simulador de Ejecución / Máquina Virtual (Client-side / WebAssembly Ready)
- * Port y mejora de src/Compiler/ejecucion.php
+ * Modulo de Ejecucion Client-side
  */
 const VirtualMachine = {
     ejecutar(codigo) {

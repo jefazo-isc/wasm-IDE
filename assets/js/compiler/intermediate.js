@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Generación de Código Intermedio de 3 Direcciones (3AC) (Client-side / WebAssembly Ready)
- * Port y mejora de src/Compiler/intermedio.php
+ * Modulo Codigo Intermedio Client-side
  */
 const IntermediateCodeGenerator = {
     generar(codigo) {

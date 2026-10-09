@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Analizador Sintáctico y Constructor AST (Client-side / WebAssembly Ready)
- * Port idéntico 1:1 de src/Compiler/sintactico.php
+ * Modulo Sintactico AST Client-side
  */
 class Parser {
     constructor(tokens) {

@@ -1,5 +1,5 @@
 /**
- * IDE Indómito - Asistente de IA Client-side (Cero Servidor PHP)
+ * IDE Indómito - Asistente de IA Client-side
  * Conexión directa mediante fetch() a Google Gemini, Mercury 2 y Grok
  * con almacenamiento seguro de API Keys en localStorage.
  */

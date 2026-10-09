@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Analizador Léxico (Client-side / WebAssembly Ready)
- * Port idéntico 1:1 de src/Compiler/lexico.php
+ * Modulo Lexico Client-side
  */
 const Lexer = {
     patrones: [

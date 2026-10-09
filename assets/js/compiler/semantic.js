@@ -1,6 +1,6 @@
 /**
  * IDE Indómito - Analizador Semántico (Client-side / WebAssembly Ready)
- * Port y mejora de src/Compiler/semantico.php
+ * Modulo Semantico Client-side
  */
 const SemanticAnalyzer = {
     analizar(codigo) {
