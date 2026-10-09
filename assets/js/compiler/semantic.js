@@ -1,79 +1,149 @@
 /**
- * IDE Indómito - Analizador Semántico (Client-side / WebAssembly Ready)
+ * IDE Indómito - Analizador Semántico basado en Árbol Sintáctico (AST)
  * Modulo Semantico Client-side
  */
 const SemanticAnalyzer = {
-    analizar(codigo) {
+    analizar(codigo, astResult) {
         if (typeof codigo !== 'string') codigo = '';
 
-        let output = "--- ANÁLISIS SEMÁNTICO ---\n\n";
+        let output = "--- ANÁLISIS SEMÁNTICO (Basado en AST) ---\n\n";
         const declaradas = {};
         const errores = [];
-        const lineas = codigo.split('\n');
 
-        // 1. Buscar declaraciones (soporte simple y múltiple: int x, y, z; real a, b;)
-        lineas.forEach((linea, num) => {
-            const numLinea = num + 1;
-            
-            // Declaraciones con tipo (int, float, real, bool, string, let, var)
-            const matchTipoMultiple = linea.match(/(?:int|float|real|bool|string|let|var)\s+([a-zA-Z_][a-zA-Z0-9_,\s]*);?/);
-            if (matchTipoMultiple) {
-                const vars = matchTipoMultiple[1].split(',');
-                vars.forEach(v => {
-                    const vLimpia = v.trim().replace(/[^a-zA-Z0-9_]/g, '');
-                    if (vLimpia) {
-                        declaradas[vLimpia] = "Tipo detectado";
-                        output += `Validación (Línea ${numLinea}): Variable '${vLimpia}' declarada correctamente.\n`;
+        // Obtener o construir el AST
+        let ast = null;
+        if (astResult && astResult.tree) {
+            ast = astResult.tree;
+        } else if (typeof Lexer !== 'undefined' && typeof Parser !== 'undefined') {
+            const lex = Lexer.analizar(codigo);
+            const parser = new Parser(lex.tokens);
+            const res = parser.parse();
+            ast = res.tree;
+        }
+
+        // FASE 1: Recorrer AST para registrar declaraciones
+        const recolectarDeclaraciones = (nodo) => {
+            if (!nodo) return;
+
+            const name = nodo.name || '';
+            const linea = nodo.linea || 1;
+
+            if (name.startsWith('Declaración Variable') && nodo.children) {
+                let tipoVar = 'Desconocido';
+                const tipoHijo = nodo.children.find(c => c.name && c.name.startsWith('Tipo: '));
+                if (tipoHijo) {
+                    tipoVar = tipoHijo.name.replace('Tipo: ', '').trim();
+                }
+
+                nodo.children.forEach(c => {
+                    if (c.name && c.name.startsWith('ID: ')) {
+                        const id = c.name.replace('ID: ', '').trim();
+                        const lineaDecl = c.linea || linea;
+                        if (declaradas[id]) {
+                            output += `Advertencia (Línea ${lineaDecl}): Variable '${id}' ya había sido declarada previamente.\n`;
+                        } else {
+                            declaradas[id] = { tipo: tipoVar, linea: lineaDecl };
+                            output += `Validación (Línea ${lineaDecl}): Variable '${id}' (${tipoVar}) declarada correctamente.\n`;
+                        }
                     }
                 });
             }
 
-            // Declaraciones estilo PHP ($var =)
-            const matchPhp = linea.match(/(\$[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)\s*=/);
-            if (matchPhp) {
-                declaradas[matchPhp[1]] = "Variable PHP";
-                output += `Validación (Línea ${numLinea}): Variable '${matchPhp[1]}' inicializada en contexto.\n`;
+            if (nodo.children && Array.isArray(nodo.children)) {
+                nodo.children.forEach(recolectarDeclaraciones);
             }
-        });
+        };
 
-        output += "\n--- Verificación de Uso ---\n";
+        if (ast) {
+            recolectarDeclaraciones(ast);
+        }
 
-        // 2. Verificación de uso y asignaciones
-        lineas.forEach((linea, num) => {
-            const numLinea = num + 1;
-            const lineaTrim = linea.trim();
+        output += "\n--- Verificación de Uso en el Árbol Sintáctico ---\n";
 
-            // Identificar asignaciones: var = ...
-            const matchAsign = lineaTrim.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=/);
-            if (matchAsign) {
-                const varName = matchAsign[1];
-                if (!declaradas.hasOwnProperty(varName) && !['echo', 'return', 'main'].includes(varName)) {
-                    output += `Error Semántico (Línea ${numLinea}): La variable '${varName}' está siendo usada pero no fue declarada.\n`;
+        // FASE 2: Recorrer AST para validar uso y asignaciones
+        const validarUsos = (nodo) => {
+            if (!nodo) return;
+
+            const name = nodo.name || '';
+            const linea = nodo.linea || 1;
+
+            // Validar destino de asignación
+            if (name.startsWith('Asignación') && nodo.children) {
+                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
+                if (varHijo) {
+                    const id = varHijo.name.replace('Variable: ', '').trim();
+                    const lineaUso = varHijo.linea || linea;
+                    if (!declaradas[id] && id !== 'main') {
+                        output += `Error Semántico (Línea ${lineaUso}): La variable '${id}' está siendo asignada pero no fue declarada.\n`;
+                        errores.push({
+                            linea: lineaUso,
+                            var: id,
+                            msg: `La variable '${id}' está siendo asignada pero no fue declarada.`
+                        });
+                    }
+                }
+            }
+
+            // Validar incrementos / decrementos
+            if ((name.startsWith('Incremento') || name.startsWith('Decremento')) && nodo.children) {
+                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
+                if (varHijo) {
+                    const id = varHijo.name.replace('Variable: ', '').trim();
+                    const lineaUso = varHijo.linea || linea;
+                    if (!declaradas[id]) {
+                        output += `Error Semántico (Línea ${lineaUso}): La variable '${id}' fue modificada pero no está declarada.\n`;
+                        errores.push({
+                            linea: lineaUso,
+                            var: id,
+                            msg: `La variable '${id}' fue modificada pero no está declarada.`
+                        });
+                    }
+                }
+            }
+
+            // Validar sentencias cin
+            if (name.startsWith('Sentencia IN') && nodo.children) {
+                nodo.children.forEach(c => {
+                    if (c.name && c.name.startsWith('ID: ')) {
+                        const id = c.name.replace('ID: ', '').trim();
+                        const lineaUso = c.linea || linea;
+                        if (!declaradas[id]) {
+                            output += `Error Semántico (Línea ${lineaUso}): La variable '${id}' en 'cin' no fue declarada.\n`;
+                            errores.push({
+                                linea: lineaUso,
+                                var: id,
+                                msg: `La variable '${id}' en 'cin' no fue declarada.`
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Validar uso de identificadores en expresiones
+            if (name.startsWith('Identificador: ')) {
+                const id = name.replace('Identificador: ', '').trim();
+                if (!declaradas[id] && id !== 'main') {
+                    output += `Error Semántico (Línea ${linea}): Variable '${id}' referenciada sin declaración previa.\n`;
                     errores.push({
-                        linea: numLinea,
-                        var: varName,
-                        msg: `La variable '${varName}' está siendo usada pero no fue declarada.`
+                        linea: linea,
+                        var: id,
+                        msg: `Variable '${id}' referenciada sin declaración previa.`
                     });
                 }
             }
 
-            // Identificar uso en cin >> var;
-            const matchCin = lineaTrim.match(/cin\s*(?:>>)?\s*([a-zA-Z_][a-zA-Z0-9_]*)/);
-            if (matchCin) {
-                const varName = matchCin[1];
-                if (!declaradas.hasOwnProperty(varName) && !['echo', 'return'].includes(varName)) {
-                    output += `Error Semántico (Línea ${numLinea}): La variable '${varName}' en 'cin' no fue declarada.\n`;
-                    errores.push({
-                        linea: numLinea,
-                        var: varName,
-                        msg: `La variable '${varName}' en 'cin' no fue declarada.`
-                    });
-                }
+            // Continuar recorrido recursivo por los hijos
+            if (nodo.children && Array.isArray(nodo.children)) {
+                nodo.children.forEach(validarUsos);
             }
-        });
+        };
+
+        if (ast) {
+            validarUsos(ast);
+        }
 
         if (errores.length === 0) {
-            output += "\nVerificación semántica completada con éxito. No hay inconsistencias de declaración.\n";
+            output += "\nVerificación semántica completada con éxito. Todas las variables usadas concuerdan con el árbol sintáctico.\n";
         }
 
         return {

@@ -658,7 +658,11 @@ async function compilarFase(fase) {
             if (panelErrores) {
                 if (res.includes("Error Semántico")) {
                     const lineasError = res.split('\n').filter(l => l.startsWith('Error Semántico'));
-                    panelErrores.innerHTML = lineasError.map(l => `<div class="interactive-log-line error-log">${l}</div>`).join('');
+                    panelErrores.innerHTML = lineasError.map(l => {
+                        const m = l.match(/Línea\s+(\d+)/i);
+                        const ln = m ? m[1] : 1;
+                        return `<div class="interactive-log-line error-log" onclick="irALinea(${ln})">${l}</div>`;
+                    }).join('');
                 } else {
                     panelErrores.innerHTML = '<div class="success-log"><i data-lucide="check-circle" style="width:16px; height:16px; margin-right:5px; vertical-align:middle;"></i> Análisis semántico completado sin inconsistencias.</div>';
                 }

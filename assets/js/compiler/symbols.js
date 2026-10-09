@@ -1,72 +1,123 @@
 /**
- * IDE Indómito - Generador de Tabla de Símbolos (Client-side / WebAssembly Ready)
+ * IDE Indómito - Generador de Tabla de Símbolos basado en Árbol Sintáctico (AST)
  * Modulo Tabla de Simbolos Client-side
  */
 const SymbolTableGenerator = {
-    generar(codigo) {
+    generar(codigo, astResult) {
         if (typeof codigo !== 'string') codigo = '';
 
         const simbolos = {};
-        const lineas = codigo.split('\n');
 
         const registrarSimbolo = (identificador, tipo, linea) => {
-            if (!simbolos[identificador]) {
-                simbolos[identificador] = {
+            if (!identificador || typeof identificador !== 'string') return;
+            const idLimpio = identificador.trim();
+            if (!idLimpio) return;
+
+            if (!simbolos[idLimpio]) {
+                simbolos[idLimpio] = {
                     tipo: tipo,
                     lineas: []
                 };
             }
-            if (!simbolos[identificador].lineas.includes(linea)) {
-                simbolos[identificador].lineas.push(linea);
+            if (linea && !simbolos[idLimpio].lineas.includes(linea)) {
+                simbolos[idLimpio].lineas.push(linea);
             }
         };
 
-        lineas.forEach((linea, num) => {
-            const numLinea = num + 1;
+        // Si no se proporcionó un AST previo, generarlo con Lexer + Parser
+        let ast = null;
+        if (astResult && astResult.tree) {
+            ast = astResult.tree;
+        } else if (typeof Lexer !== 'undefined' && typeof Parser !== 'undefined') {
+            const lex = Lexer.analizar(codigo);
+            const parser = new Parser(lex.tokens);
+            const res = parser.parse();
+            ast = res.tree;
+        }
 
-            // 1. Detección de Clases
-            const classMatches = [...linea.matchAll(/class\s+([a-zA-Z_][a-zA-Z0-9_]*)/g)];
-            for (const match of classMatches) {
-                registrarSimbolo(match[1], 'Clase', numLinea);
+        // Recorrido recursivo del Árbol Sintáctico (AST)
+        const recorrerAST = (nodo) => {
+            if (!nodo) return;
+
+            const name = nodo.name || '';
+            const linea = nodo.linea || null;
+
+            // 1. Programa principal
+            if (name.includes('Programa Principal') || name.toLowerCase().includes('main')) {
+                registrarSimbolo('main', 'Punto de Entrada', linea || 1);
             }
 
-            // 2. Detección de Funciones (ej. int main(), void hacerAlgo())
-            const funcMatches = [...linea.matchAll(/(?:function|int|float|void|real|bool)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g)];
-            for (const match of funcMatches) {
-                const func = match[1];
-                if (!['if', 'while', 'switch', 'for', 'main'].includes(func)) {
-                    registrarSimbolo(func, 'Función/Método', numLinea);
-                } else if (func === 'main') {
-                    registrarSimbolo('main', 'Punto de Entrada', numLinea);
+            // 2. Declaración de variables: Nodo "Declaración Variable" con hijos Tipo e ID
+            if (name.startsWith('Declaración Variable') && nodo.children) {
+                let tipoVar = 'Variable';
+                const tipoHijo = nodo.children.find(c => c.name && c.name.startsWith('Tipo: '));
+                if (tipoHijo) {
+                    tipoVar = tipoHijo.name.replace('Tipo: ', '').trim();
                 }
-            }
 
-            // Detección especial de 'main {' o 'main()'
-            if (/\bmain\b/.test(linea) && !simbolos['main']) {
-                registrarSimbolo('main', 'Punto de Entrada', numLinea);
-            }
-
-            // 3. Declaración de Variables separadas por comas (ej. int x, y, z; real a, b;)
-            const varBlockMatches = [...linea.matchAll(/(?:int|float|double|char|string|real|bool)\s+([a-zA-Z_][a-zA-Z0-9_,\s]*)/g)];
-            for (const match of varBlockMatches) {
-                const vars = match[1].split(',');
-                for (const v of vars) {
-                    const varLimpia = v.trim().replace(/[^a-zA-Z0-9_]/g, '');
-                    if (varLimpia && varLimpia !== 'main') {
-                        registrarSimbolo(varLimpia, 'Variable', numLinea);
+                nodo.children.forEach(c => {
+                    if (c.name && c.name.startsWith('ID: ')) {
+                        const id = c.name.replace('ID: ', '').trim();
+                        registrarSimbolo(id, tipoVar, c.linea || linea);
                     }
+                });
+            }
+
+            // 3. Asignación: Nodo "Asignación (=)" con hijo Variable
+            if (name.startsWith('Asignación') && nodo.children) {
+                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
+                if (varHijo) {
+                    const id = varHijo.name.replace('Variable: ', '').trim();
+                    registrarSimbolo(id, 'Asignación/Uso', varHijo.linea || linea);
                 }
             }
 
-            // 4. Asignaciones directas o de uso
-            const assignMatches = [...linea.matchAll(/([a-zA-Z_][a-zA-Z0-9_]*)\s*(:=|=)/g)];
-            for (const match of assignMatches) {
-                const varName = match[1];
-                if (!['let', 'var', 'const', 'return', 'if', 'while', 'for', 'else', 'do'].includes(varName)) {
-                    registrarSimbolo(varName, 'Asignación/Uso', numLinea);
+            // 4. Incremento / Decremento
+            if ((name.startsWith('Incremento') || name.startsWith('Decremento')) && nodo.children) {
+                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
+                if (varHijo) {
+                    const id = varHijo.name.replace('Variable: ', '').trim();
+                    registrarSimbolo(id, 'Incremento/Uso', varHijo.linea || linea);
                 }
             }
-        });
+
+            // 5. Entrada cin: Sentencia IN con ID
+            if (name.startsWith('Sentencia IN') && nodo.children) {
+                nodo.children.forEach(c => {
+                    if (c.name && c.name.startsWith('ID: ')) {
+                        const id = c.name.replace('ID: ', '').trim();
+                        registrarSimbolo(id, 'Entrada (cin)', c.linea || linea);
+                    }
+                });
+            }
+
+            // 6. Referencias a Identificadores en expresiones u otros nodos hoja
+            if (name.startsWith('Identificador: ')) {
+                const id = name.replace('Identificador: ', '').trim();
+                registrarSimbolo(id, 'Identificador/Uso', linea);
+            }
+
+            // Visitar hijos del nodo del árbol
+            if (nodo.children && Array.isArray(nodo.children)) {
+                nodo.children.forEach(recorrerAST);
+            }
+        };
+
+        if (ast) {
+            recorrerAST(ast);
+        }
+
+        // Si el AST no produjo símbolos o falló sintácticamente, extraer de los tokens del código
+        if (Object.keys(simbolos).length === 0 && typeof Lexer !== 'undefined') {
+            const lex = Lexer.analizar(codigo);
+            (lex.tokens || []).forEach(tok => {
+                if (tok.tipo === 'ID') {
+                    registrarSimbolo(tok.lexema, 'Identificador', tok.linea);
+                } else if (tok.tipo === 'RESERVADA' && tok.lexema === 'main') {
+                    registrarSimbolo('main', 'Punto de Entrada', tok.linea);
+                }
+            });
+        }
 
         // Ordenar alfabéticamente
         const output = [];
