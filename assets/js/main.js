@@ -138,7 +138,26 @@ window.addEventListener('resize', synchronizeScrollbarOffset);
 // ==========================================================================
 // EXPLORADOR Y ATAJOS CLIENT-SIDE
 // ==========================================================================
-document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); guardarArchivo(); } });
+document.addEventListener('keydown', async (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        guardarArchivo();
+    } else if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r')) {
+        e.preventDefault();
+        if (await Modals.confirm("Recargar IDE", "¿Deseas recargar la aplicación? Cualquier cambio no guardado en el archivo actual se perderá.")) {
+            window.location.reload();
+        }
+    }
+});
+
+// Advertencia nativa al cerrar pestaña o recargar directamente
+window.addEventListener('beforeunload', (e) => {
+    // Si hay contenido en el editor, advertir al usuario
+    if (DOM.editor && DOM.editor.value.trim().length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
 
 function cargarExplorador(rutaSolicitada = null) {
     const ruta = rutaSolicitada ?? DOM.workspacePath.value.trim() ?? '/';
