@@ -9,7 +9,7 @@
         :root {
             --bg-primary: #0f172a;
             --panel-bg: rgba(30, 41, 59, 0.95);
-            --border-color: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.12);
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --accent-primary: #38bdf8;
@@ -32,31 +32,39 @@
         #automata-network {
             flex: 1;
             height: 100%;
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            background: radial-gradient(circle at center, #1e293b 0%, #0b0f19 100%);
         }
 
-        /* --- ENCABEZADO SUPERIOR --- */
-        .header-badge {
+        /* --- BARRA SUPERIOR CON FILTROS --- */
+        .top-toolbar {
             position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 16px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .header-badge {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            padding: 10px 24px;
+            padding: 10px 22px;
             border-radius: 9999px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             gap: 12px;
-            z-index: 10;
-            backdrop-filter: blur(8px);
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
         }
 
         .header-badge h2 {
             margin: 0;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: 0.5px;
             color: #38bdf8;
         }
@@ -66,68 +74,109 @@
             color: var(--text-secondary);
         }
 
-        /* --- LEYENDA --- */
+        /* FILTROS POR CATEGORÍA */
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 6px 10px;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .filter-btn.active {
+            background: #0284c7;
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+        }
+
+        /* --- LEYENDA FLOTANTE --- */
         .leyenda-container {
             position: absolute;
-            top: 20px;
+            bottom: 25px;
             left: 20px;
             background: var(--panel-bg);
-            padding: 16px 20px;
+            padding: 14px 18px;
             border-radius: 12px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
             border: 1px solid var(--border-color);
             z-index: 10;
-            max-width: 280px;
-            backdrop-filter: blur(8px);
+            max-width: 260px;
+            backdrop-filter: blur(10px);
         }
 
         .leyenda-container h3 {
-            margin: 0 0 12px 0;
-            font-size: 14px;
+            margin: 0 0 10px 0;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .leyenda-item {
             display: flex;
             align-items: center;
-            font-size: 12px;
-            margin-bottom: 7px;
+            font-size: 11px;
+            margin-bottom: 6px;
             color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .leyenda-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
         }
 
         .color-box {
-            width: 14px;
-            height: 14px;
-            border-radius: 4px;
-            margin-right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 8px;
             display: inline-block;
-            border: 1px solid rgba(255, 255, 255, 0.2);
             flex-shrink: 0;
         }
 
         /* --- CONTENEDOR DE LA LUPA DE DETALLE --- */
         #tooltip-container {
             position: absolute;
-            top: 20px;
+            top: 75px;
             right: 20px;
             width: 320px;
             background: var(--panel-bg);
             border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
             border: 1px solid var(--border-color);
             z-index: 10;
             display: none;
             flex-direction: column;
             overflow: hidden;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
         }
 
         .tooltip-header {
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.85);
             color: #38bdf8;
             padding: 10px 14px;
             font-weight: 600;
@@ -152,53 +201,69 @@
         
         .tooltip-info strong { color: #f8fafc; }
 
-        /* --- BOTONES DE CONTROL --- */
+        /* --- BOTONES DE ZOOM Y VISTA --- */
         .controls {
             position: absolute;
             bottom: 25px;
             right: 25px;
             z-index: 10;
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
+        .btn-ctrl {
+            background: var(--panel-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             transition: all 0.2s;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .btn:hover {
+        .btn-ctrl:hover {
             transform: translateY(-2px);
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            background: #0284c7;
+            color: white;
+            border-color: #38bdf8;
         }
     </style>
 </head>
 <body>
 
-    <div class="header-badge">
-        <h2>AUTÓMATA FINITO DETERMINISTA (AFD)</h2>
-        <span>• Especificación Formal del Compilador</span>
+    <div class="top-toolbar">
+        <div class="header-badge">
+            <h2>AUTÓMATA LÉXICO (AFD)</h2>
+            <span>• Especificación del Compilador</span>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filtrarCategoria('todas', this)">Todo el Autómata</button>
+            <button class="filter-btn" onclick="filtrarCategoria('numeros', this)">🔢 Números</button>
+            <button class="filter-btn" onclick="filtrarCategoria('ids', this)">🔤 Identificadores</button>
+            <button class="filter-btn" onclick="filtrarCategoria('ops', this)">⚡ Operadores</button>
+            <button class="filter-btn" onclick="filtrarCategoria('texto', this)">💬 Cadenas</button>
+            <button class="filter-btn" onclick="filtrarCategoria('comentarios', this)">📝 Comentarios</button>
+        </div>
     </div>
 
     <div class="leyenda-container">
-        <h3>Categorías del Léxico</h3>
-        <div class="leyenda-item"><span class="color-box" style="background:#475569;"></span>Estado Inicial (q0)</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#38bdf8;"></span>Identificadores y Reservadas</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#fbbf24;"></span>Constantes Numéricas (Int / Real)</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#fb923c;"></span>Operadores (Aritm., Rel., Lóg.)</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#c084fc;"></span>Cadenas y Caracteres</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#4ade80;"></span>Comentarios (Línea / Bloque)</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#2dd4bf;"></span>Símbolos Delimitadores</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#f87171;"></span>Estado de Error Léxico</div>
-        <div class="leyenda-item"><span class="color-box" style="background:#22c55e; border: 2px solid #ffffff;"></span>Estado Final / Aceptación</div>
+        <h3>Leyenda Interactiva</h3>
+        <div class="leyenda-item" onclick="enfocarNodo('INICIO')"><span class="color-box" style="background:#475569;"></span>Estado Inicial (q0)</div>
+        <div class="leyenda-item" onclick="enfocarNodo('Q_ID')"><span class="color-box" style="background:#0284c7;"></span>Identificadores y Reservadas</div>
+        <div class="leyenda-item" onclick="enfocarNodo('Q_REAL')"><span class="color-box" style="background:#d97706;"></span>Constantes (Entero / Real)</div>
+        <div class="leyenda-item" onclick="enfocarNodo('Q_OP_COMPUESTO')"><span class="color-box" style="background:#ea580c;"></span>Operadores (Relac., Lóg., E/S)</div>
+        <div class="leyenda-item" onclick="enfocarNodo('Q_CADENA_CUERPO')"><span class="color-box" style="background:#9333ea;"></span>Cadenas y Caracteres</div>
+        <div class="leyenda-item" onclick="enfocarNodo('Q_COM_BLOQUE')"><span class="color-box" style="background:#16a34a;"></span>Comentarios (// y /* */)</div>
+        <div class="leyenda-item" onclick="enfocarNodo('ERROR_LEXICO')"><span class="color-box" style="background:#dc2626;"></span>Estados de Error Léxico</div>
+        <div class="leyenda-item" onclick="enfocarNodo('ACEPTACION')"><span class="color-box" style="background:#15803d; border: 1px solid #fff;"></span>Estado Final de Aceptación</div>
     </div>
 
     <div id="tooltip-container">
@@ -212,7 +277,9 @@
     <div id="automata-network"></div>
     
     <div class="controls">
-        <button class="btn" onclick="network.fit({ animation: { duration: 800 } })">🎯 Centrar Autómata</button>
+        <button class="btn-ctrl" onclick="zoomIn()">➕ Acercar</button>
+        <button class="btn-ctrl" onclick="zoomOut()">➖ Alejar</button>
+        <button class="btn-ctrl" onclick="centrarVista()">🎯 Centrar Vista</button>
     </div>
 
     <script type="text/javascript">
@@ -228,56 +295,54 @@
             hecho:   { background: '#15803d', border: '#22c55e' }
         };
 
-        // --- DEFINICIÓN COHERENTE 1:1 CON EL LEXER REAL DEL COMPILADOR ---
-        // Distribución en capas claras (X = fases, Y = categorías)
-        var nodesArray = [
-            // Control
-            { id: 'INICIO', label: 'INICIO\n(q0)', shape: 'circle', color: colors.inicio, x: -1600, y: 0, font: { color: '#fff', size: 20, bold: true }, size: 45 },
-            { id: 'ACEPTACION', label: 'TOKEN FINAL\n(Retornar Token)', shape: 'box', color: colors.hecho, x: 1600, y: 0, font: { color: '#fff', size: 20, bold: true }, borderWidth: 3, margin: 15 },
-            { id: 'ERROR_LEXICO', label: 'ERROR LÉXICO\n(Carácter inv. / Num malf.)', shape: 'ellipse', color: colors.error, x: 1000, y: -700, font: { color: '#fff', size: 16 } },
+        // NODOS CON TAMAÑO Y TIPOGRAFÍA OPTIMIZADA PARA LEGIBILIDAD INMEDIATA
+        var allNodes = [
+            // Control Principal
+            { id: 'INICIO', label: 'INICIO\n(q0)', shape: 'circle', color: colors.inicio, categoria: 'control', font: { color: '#fff', size: 26, bold: true }, size: 55 },
+            { id: 'ACEPTACION', label: 'ACEPTACIÓN\n(Retornar Token)', shape: 'box', color: colors.hecho, categoria: 'control', font: { color: '#fff', size: 24, bold: true }, borderWidth: 3, margin: 18 },
+            { id: 'ERROR_LEXICO', label: 'ERROR LÉXICO\n(Inválido / Malformado)', shape: 'ellipse', color: colors.error, categoria: 'control', font: { color: '#fff', size: 20 }, margin: 12 },
 
             // Rama 1: Identificadores y Palabras Reservadas
-            { id: 'Q_ID', label: 'Q_ID\n(Identificador / Reservada)', shape: 'ellipse', color: colors.id, x: 0, y: -600, font: { color: '#fff' } },
+            { id: 'Q_ID', label: 'Q_ID\n(Identificador / Reservada)', shape: 'ellipse', color: colors.id, categoria: 'ids', font: { color: '#fff', size: 20 } },
 
-            // Rama 2: Números Enteros y Reales (Soporta número malformado 32.)
-            { id: 'Q_ENTERO', label: 'Q_ENTERO\n(Dígitos)', shape: 'ellipse', color: colors.num, x: -600, y: -400, font: { color: '#fff' } },
-            { id: 'Q_PUNTO', label: 'Q_PUNTO\n(Punto decimal ".") ', shape: 'ellipse', color: colors.num, x: 0, y: -400, font: { color: '#fff' } },
-            { id: 'Q_REAL', label: 'Q_REAL\n(Número Real)', shape: 'ellipse', color: colors.num, x: 600, y: -400, font: { color: '#fff' } },
+            // Rama 2: Números
+            { id: 'Q_ENTERO', label: 'Q_ENTERO\n(Dígitos)', shape: 'ellipse', color: colors.num, categoria: 'numeros', font: { color: '#fff', size: 20 } },
+            { id: 'Q_PUNTO', label: 'Q_PUNTO\n(Punto decimal ".")', shape: 'ellipse', color: colors.num, categoria: 'numeros', font: { color: '#fff', size: 19 } },
+            { id: 'Q_REAL', label: 'Q_REAL\n(Número Real)', shape: 'ellipse', color: colors.num, categoria: 'numeros', font: { color: '#fff', size: 20 } },
 
             // Rama 3: Cadenas y Caracteres
-            { id: 'Q_CADENA_INICIO', label: 'Q_CADENA_INICIO\nApertura comilla (")', shape: 'ellipse', color: colors.text, x: -600, y: -200, font: { color: '#fff' } },
-            { id: 'Q_CADENA_CUERPO', label: 'Q_CADENA\nTexto entre comillas', shape: 'ellipse', color: colors.text, x: 200, y: -200, font: { color: '#fff' } },
-            { id: 'Q_CHAR_INICIO', label: 'Q_CHAR_INICIO\nApertura comilla simple (\')', shape: 'ellipse', color: colors.text, x: -600, y: -50, font: { color: '#fff' } },
-            { id: 'Q_CHAR_CUERPO', label: 'Q_CHAR\nUn carácter', shape: 'ellipse', color: colors.text, x: 200, y: -50, font: { color: '#fff' } },
+            { id: 'Q_CADENA_INICIO', label: 'Q_CADENA_INICIO\nApertura comilla (")', shape: 'ellipse', color: colors.text, categoria: 'texto', font: { color: '#fff', size: 18 } },
+            { id: 'Q_CADENA_CUERPO', label: 'Q_CADENA\nTexto entre comillas', shape: 'ellipse', color: colors.text, categoria: 'texto', font: { color: '#fff', size: 20 } },
+            { id: 'Q_CHAR_INICIO', label: 'Q_CHAR_INICIO\nApertura comilla simple (\')', shape: 'ellipse', color: colors.text, categoria: 'texto', font: { color: '#fff', size: 18 } },
+            { id: 'Q_CHAR_CUERPO', label: 'Q_CHAR\nUn carácter', shape: 'ellipse', color: colors.text, categoria: 'texto', font: { color: '#fff', size: 20 } },
 
-            // Rama 4: Operadores Relacionales y Flujo ( <, >, <=, >=, ==, !=, <<, >> )
-            { id: 'Q_MENOR', label: 'Q_MENOR\n(<)', shape: 'ellipse', color: colors.op, x: -400, y: 150, font: { color: '#fff' } },
-            { id: 'Q_MAYOR', label: 'Q_MAYOR\n(>)', shape: 'ellipse', color: colors.op, x: -400, y: 300, font: { color: '#fff' } },
-            { id: 'Q_ASIGN_IGUAL', label: 'Q_ASIGN\n(=)', shape: 'ellipse', color: colors.op, x: -400, y: 450, font: { color: '#fff' } },
-            { id: 'Q_EXCLAMACION', label: 'Q_EXCLAMACION\n(!)', shape: 'ellipse', color: colors.op, x: -400, y: 600, font: { color: '#fff' } },
-            { id: 'Q_OP_COMPUESTO', label: 'Q_OP_COMPUESTO\n(==, !=, <=, >=, <<, >>)', shape: 'ellipse', color: colors.op, x: 500, y: 350, font: { color: '#fff' } },
+            // Rama 4: Operadores Relacionales, Asignación y Flujo E/S cin/cout
+            { id: 'Q_MENOR', label: 'Q_MENOR\n(<)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_MAYOR', label: 'Q_MAYOR\n(>)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_ASIGN_IGUAL', label: 'Q_ASIGN\n(=)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_EXCLAMACION', label: 'Q_EXCLAMACION\n(!)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_OP_COMPUESTO', label: 'Q_OP_COMPUESTO\n(==, !=, <=, >=, <<, >>)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 20 } },
 
-            // Rama 5: Operadores Lógicos ( &&, || ) y Aritméticos (+, -, *, /, %, ^, ++, --)
-            { id: 'Q_AMPERSAND', label: 'Q_AMPERSAND\n(&)', shape: 'ellipse', color: colors.op, x: -400, y: 750, font: { color: '#fff' } },
-            { id: 'Q_PIPE', label: 'Q_PIPE\n(|)', shape: 'ellipse', color: colors.op, x: -400, y: 900, font: { color: '#fff' } },
-            { id: 'Q_MAS', label: 'Q_MAS\n(+)', shape: 'ellipse', color: colors.op, x: -200, y: 1050, font: { color: '#fff' } },
-            { id: 'Q_MENOS', label: 'Q_MENOS\n(-)', shape: 'ellipse', color: colors.op, x: -200, y: 1200, font: { color: '#fff' } },
-            { id: 'Q_INC_DEC', label: 'Q_INC_DEC\n(++ , --)', shape: 'ellipse', color: colors.op, x: 500, y: 1120, font: { color: '#fff' } },
-            { id: 'Q_ARIT_SIMPLE', label: 'Q_ARIT_SIMPLE\n(* , % , ^)', shape: 'ellipse', color: colors.op, x: 0, y: 1350, font: { color: '#fff' } },
+            // Rama 5: Operadores Lógicos y Aritméticos
+            { id: 'Q_AMPERSAND', label: 'Q_AMPERSAND\n(&)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_PIPE', label: 'Q_PIPE\n(|)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_MAS', label: 'Q_MAS\n(+)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_MENOS', label: 'Q_MENOS\n(-)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 22 } },
+            { id: 'Q_INC_DEC', label: 'Q_INC_DEC\n(++ , --)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 20 } },
+            { id: 'Q_ARIT_SIMPLE', label: 'Q_ARIT_SIMPLE\n(* , % , ^)', shape: 'ellipse', color: colors.op, categoria: 'ops', font: { color: '#fff', size: 20 } },
 
-            // Rama 6: Comentarios (// y /* */) y división (/)
-            { id: 'Q_SLASH', label: 'Q_SLASH\n(/)', shape: 'ellipse', color: colors.comment, x: -600, y: 1550, font: { color: '#fff' } },
-            { id: 'Q_COM_LINEA', label: 'Q_COM_LINEA\n(// comentario de línea)', shape: 'ellipse', color: colors.comment, x: 200, y: 1450, font: { color: '#fff' } },
-            { id: 'Q_COM_BLOQUE', label: 'Q_COM_BLOQUE\n(/* cuerpo multilínea)', shape: 'ellipse', color: colors.comment, x: 200, y: 1650, font: { color: '#fff' } },
-            { id: 'Q_ASTERISCO_CIERRE', label: 'Q_AST_CIERRE\n(* cierre de bloque)', shape: 'ellipse', color: colors.comment, x: 700, y: 1650, font: { color: '#fff' } },
+            // Rama 6: Comentarios y División
+            { id: 'Q_SLASH', label: 'Q_SLASH\n(/)', shape: 'ellipse', color: colors.comment, categoria: 'comentarios', font: { color: '#fff', size: 22 } },
+            { id: 'Q_COM_LINEA', label: 'Q_COM_LINEA\n(// línea)', shape: 'ellipse', color: colors.comment, categoria: 'comentarios', font: { color: '#fff', size: 20 } },
+            { id: 'Q_COM_BLOQUE', label: 'Q_COM_BLOQUE\n(/* bloque)', shape: 'ellipse', color: colors.comment, categoria: 'comentarios', font: { color: '#fff', size: 20 } },
+            { id: 'Q_ASTERISCO_CIERRE', label: 'Q_AST_CIERRE\n(* cierre)', shape: 'ellipse', color: colors.comment, categoria: 'comentarios', font: { color: '#fff', size: 20 } },
 
-            // Rama 7: Delimitadores / Símbolos
-            { id: 'Q_DELIMITADOR', label: 'Q_DELIMITADOR\n( ( ) { } , ; )', shape: 'ellipse', color: colors.sym, x: 0, y: 1850, font: { color: '#fff' } }
+            // Rama 7: Delimitadores
+            { id: 'Q_DELIMITADOR', label: 'Q_DELIMITADOR\n( ( ) { } , ; )', shape: 'ellipse', color: colors.sym, categoria: 'ops', font: { color: '#fff', size: 20 } }
         ];
 
-        var edgesArray = [
-            // Ciclo de espacios en blanco
-            { from: 'INICIO', to: 'INICIO', label: 'Espacio / Salto de línea', arrows: 'to' },
+        var allEdges = [
+            { from: 'INICIO', to: 'INICIO', label: 'Espacio / \\n', arrows: 'to' },
 
             // Rama ID y Reservadas
             { from: 'INICIO', to: 'Q_ID', label: 'Letra [a-zA-Z] o "_"', arrows: 'to' },
@@ -291,97 +356,96 @@
             { from: 'Q_PUNTO', to: 'Q_REAL', label: 'Dígito [0-9]', arrows: 'to' },
             { from: 'Q_PUNTO', to: 'ERROR_LEXICO', label: 'No hay dígito (ej. "32.")', arrows: 'to', font: { color: '#f87171' } },
             { from: 'Q_REAL', to: 'Q_REAL', label: 'Dígito [0-9]', arrows: 'to' },
-            { from: 'Q_ENTERO', to: 'ACEPTACION', label: 'Otro carácter (Token NUM_ENTERO)', arrows: 'to' },
-            { from: 'Q_REAL', to: 'ACEPTACION', label: 'Otro carácter (Token NUM_REAL)', arrows: 'to' },
+            { from: 'Q_ENTERO', to: 'ACEPTACION', label: 'Otro carácter (NUM_ENTERO)', arrows: 'to' },
+            { from: 'Q_REAL', to: 'ACEPTACION', label: 'Otro carácter (NUM_REAL)', arrows: 'to' },
 
             // Rama Cadenas y Caracteres
             { from: 'INICIO', to: 'Q_CADENA_INICIO', label: 'Comilla doble (")', arrows: 'to' },
             { from: 'Q_CADENA_INICIO', to: 'Q_CADENA_CUERPO', label: 'Cualquier carácter excepto "', arrows: 'to' },
             { from: 'Q_CADENA_CUERPO', to: 'Q_CADENA_CUERPO', label: 'Texto continúo', arrows: 'to' },
-            { from: 'Q_CADENA_CUERPO', to: 'ACEPTACION', label: 'Comilla cierre (") (Token CADENA)', arrows: 'to' },
+            { from: 'Q_CADENA_CUERPO', to: 'ACEPTACION', label: 'Comilla cierre (") (CADENA)', arrows: 'to' },
 
             { from: 'INICIO', to: 'Q_CHAR_INICIO', label: 'Comilla simple (\')', arrows: 'to' },
             { from: 'Q_CHAR_INICIO', to: 'Q_CHAR_CUERPO', label: 'Un carácter', arrows: 'to' },
-            { from: 'Q_CHAR_CUERPO', to: 'ACEPTACION', label: 'Comilla cierre (\') (Token CARACTER)', arrows: 'to' },
+            { from: 'Q_CHAR_CUERPO', to: 'ACEPTACION', label: 'Comilla cierre (\') (CARACTER)', arrows: 'to' },
 
-            // Rama Operadores Relacionales, Asignación y E/S cin/cout
-            { from: 'INICIO', to: 'Q_MENOR', label: 'Menor que ("<")', arrows: 'to' },
-            { from: 'Q_MENOR', to: 'Q_OP_COMPUESTO', label: 'Igual "=" (<=) o Menor "<" (<<)', arrows: 'to' },
+            // Rama Relacionales y E/S
+            { from: 'INICIO', to: 'Q_MENOR', label: '"<"', arrows: 'to' },
+            { from: 'Q_MENOR', to: 'Q_OP_COMPUESTO', label: '"=" (<=) o "<" (<<)', arrows: 'to' },
             { from: 'Q_MENOR', to: 'ACEPTACION', label: 'Otro (Token "<")', arrows: 'to' },
 
-            { from: 'INICIO', to: 'Q_MAYOR', label: 'Mayor que (">")', arrows: 'to' },
-            { from: 'Q_MAYOR', to: 'Q_OP_COMPUESTO', label: 'Igual "=" (>=) o Mayor ">" (>>)', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_MAYOR', label: '">"', arrows: 'to' },
+            { from: 'Q_MAYOR', to: 'Q_OP_COMPUESTO', label: '"=" (>=) o ">" (>>)', arrows: 'to' },
             { from: 'Q_MAYOR', to: 'ACEPTACION', label: 'Otro (Token ">")', arrows: 'to' },
 
-            { from: 'INICIO', to: 'Q_ASIGN_IGUAL', label: 'Igual ("=")', arrows: 'to' },
-            { from: 'Q_ASIGN_IGUAL', to: 'Q_OP_COMPUESTO', label: 'Igual "=" (==)', arrows: 'to' },
-            { from: 'Q_ASIGN_IGUAL', to: 'ACEPTACION', label: 'Otro (Token ASIGNACION "=")', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_ASIGN_IGUAL', label: '"="', arrows: 'to' },
+            { from: 'Q_ASIGN_IGUAL', to: 'Q_OP_COMPUESTO', label: '"=" (==)', arrows: 'to' },
+            { from: 'Q_ASIGN_IGUAL', to: 'ACEPTACION', label: 'Otro (Token "=")', arrows: 'to' },
 
-            { from: 'INICIO', to: 'Q_EXCLAMACION', label: 'Exclamación ("!")', arrows: 'to' },
-            { from: 'Q_EXCLAMACION', to: 'Q_OP_COMPUESTO', label: 'Igual "=" (!=)', arrows: 'to' },
-            { from: 'Q_EXCLAMACION', to: 'ACEPTACION', label: 'Otro (Token OP_LOGICO "!")', arrows: 'to' },
-            { from: 'Q_OP_COMPUESTO', to: 'ACEPTACION', label: 'Aceptar Token Relacional / Flujo', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_EXCLAMACION', label: '"!"', arrows: 'to' },
+            { from: 'Q_EXCLAMACION', to: 'Q_OP_COMPUESTO', label: '"=" (!=)', arrows: 'to' },
+            { from: 'Q_EXCLAMACION', to: 'ACEPTACION', label: 'Otro (Token "!")', arrows: 'to' },
+            { from: 'Q_OP_COMPUESTO', to: 'ACEPTACION', label: 'Token Relacional / Flujo', arrows: 'to' },
 
-            // Rama Operadores Lógicos (&&, ||)
-            { from: 'INICIO', to: 'Q_AMPERSAND', label: 'Ampersand ("&")', arrows: 'to' },
-            { from: 'Q_AMPERSAND', to: 'ACEPTACION', label: 'Segundo "&" (Token "&&")', arrows: 'to' },
-            { from: 'Q_AMPERSAND', to: 'ERROR_LEXICO', label: 'Otro carácter ("&" suelto)', arrows: 'to', font: { color: '#f87171' } },
+            // Rama Operadores Lógicos
+            { from: 'INICIO', to: 'Q_AMPERSAND', label: '"&"', arrows: 'to' },
+            { from: 'Q_AMPERSAND', to: 'ACEPTACION', label: 'Segundo "&" (&&)', arrows: 'to' },
+            { from: 'Q_AMPERSAND', to: 'ERROR_LEXICO', label: 'Otro ("&" suelto)', arrows: 'to', font: { color: '#f87171' } },
 
-            { from: 'INICIO', to: 'Q_PIPE', label: 'Pleca ("|")', arrows: 'to' },
-            { from: 'Q_PIPE', to: 'ACEPTACION', label: 'Segunda "|" (Token "||")', arrows: 'to' },
-            { from: 'Q_PIPE', to: 'ERROR_LEXICO', label: 'Otro carácter ("|" suelto)', arrows: 'to', font: { color: '#f87171' } },
+            { from: 'INICIO', to: 'Q_PIPE', label: '"|"', arrows: 'to' },
+            { from: 'Q_PIPE', to: 'ACEPTACION', label: 'Segunda "|" (||)', arrows: 'to' },
+            { from: 'Q_PIPE', to: 'ERROR_LEXICO', label: 'Otro ("|" suelto)', arrows: 'to', font: { color: '#f87171' } },
 
             // Rama Incremento, Decremento y Aritméticos
-            { from: 'INICIO', to: 'Q_MAS', label: 'Signo "+"', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_MAS', label: '"+"', arrows: 'to' },
             { from: 'Q_MAS', to: 'Q_INC_DEC', label: 'Segundo "+" (++)', arrows: 'to' },
             { from: 'Q_MAS', to: 'ACEPTACION', label: 'Otro (Token "+")', arrows: 'to' },
 
-            { from: 'INICIO', to: 'Q_MENOS', label: 'Signo "-"', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_MENOS', label: '"-"', arrows: 'to' },
             { from: 'Q_MENOS', to: 'Q_INC_DEC', label: 'Segundo "-" (--)', arrows: 'to' },
             { from: 'Q_MENOS', to: 'ACEPTACION', label: 'Otro (Token "-")', arrows: 'to' },
-            { from: 'Q_INC_DEC', to: 'ACEPTACION', label: 'Aceptar Token Incremento/Decremento', arrows: 'to' },
+            { from: 'Q_INC_DEC', to: 'ACEPTACION', label: 'Token (++) o (--)', arrows: 'to' },
 
             { from: 'INICIO', to: 'Q_ARIT_SIMPLE', label: '* , % , ^', arrows: 'to' },
-            { from: 'Q_ARIT_SIMPLE', to: 'ACEPTACION', label: 'Aceptar Token Aritmético', arrows: 'to' },
+            { from: 'Q_ARIT_SIMPLE', to: 'ACEPTACION', label: 'Token Aritmético', arrows: 'to' },
 
             // Rama Comentarios y División
-            { from: 'INICIO', to: 'Q_SLASH', label: 'Diagonal ("/")', arrows: 'to' },
-            { from: 'Q_SLASH', to: 'Q_COM_LINEA', label: 'Segunda diagonal ("/")', arrows: 'to' },
-            { from: 'Q_COM_LINEA', to: 'Q_COM_LINEA', label: 'Cualquier carácter excepto \\n', arrows: 'to' },
-            { from: 'Q_COM_LINEA', to: 'INICIO', label: 'Salto de línea (Ignorado / Reinicia)', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_SLASH', label: '"/"', arrows: 'to' },
+            { from: 'Q_SLASH', to: 'Q_COM_LINEA', label: 'Segunda "/"', arrows: 'to' },
+            { from: 'Q_COM_LINEA', to: 'Q_COM_LINEA', label: 'Texto', arrows: 'to' },
+            { from: 'Q_COM_LINEA', to: 'INICIO', label: 'Salto \\n (Ignora)', arrows: 'to' },
 
-            { from: 'Q_SLASH', to: 'Q_COM_BLOQUE', label: 'Asterisco ("*")', arrows: 'to' },
-            { from: 'Q_COM_BLOQUE', to: 'Q_COM_BLOQUE', label: 'Cualquier carácter excepto *', arrows: 'to' },
-            { from: 'Q_COM_BLOQUE', to: 'Q_ASTERISCO_CIERRE', label: 'Asterisco ("*")', arrows: 'to' },
-            { from: 'Q_ASTERISCO_CIERRE', to: 'Q_COM_BLOQUE', label: 'Carácter distinto de "/"', arrows: 'to' },
-            { from: 'Q_ASTERISCO_CIERRE', to: 'INICIO', label: 'Diagonal ("/") (Ignorado / Reinicia)', arrows: 'to' },
-            { from: 'Q_SLASH', to: 'ACEPTACION', label: 'Otro carácter (Token División "/")', arrows: 'to' },
+            { from: 'Q_SLASH', to: 'Q_COM_BLOQUE', label: '"*"', arrows: 'to' },
+            { from: 'Q_COM_BLOQUE', to: 'Q_COM_BLOQUE', label: 'Texto', arrows: 'to' },
+            { from: 'Q_COM_BLOQUE', to: 'Q_ASTERISCO_CIERRE', label: '"*"', arrows: 'to' },
+            { from: 'Q_ASTERISCO_CIERRE', to: 'Q_COM_BLOQUE', label: 'Distinto de "/"', arrows: 'to' },
+            { from: 'Q_ASTERISCO_CIERRE', to: 'INICIO', label: '"/" (Ignora)', arrows: 'to' },
+            { from: 'Q_SLASH', to: 'ACEPTACION', label: 'Otro (Token "/")', arrows: 'to' },
 
             // Rama Delimitadores
-            { from: 'INICIO', to: 'Q_DELIMITADOR', label: '( , ) , { , } , , , ;', arrows: 'to' },
-            { from: 'Q_DELIMITADOR', to: 'ACEPTACION', label: 'Aceptar Token Símbolo', arrows: 'to' },
+            { from: 'INICIO', to: 'Q_DELIMITADOR', label: '( ) { } , ;', arrows: 'to' },
+            { from: 'Q_DELIMITADOR', to: 'ACEPTACION', label: 'Token Símbolo', arrows: 'to' },
 
-            // Errores léxicos directos
-            { from: 'INICIO', to: 'ERROR_LEXICO', label: 'Símbolo no reconocido (@, $, #...)', arrows: 'to', font: { color: '#f87171' } }
+            // Error Léxico Directo
+            { from: 'INICIO', to: 'ERROR_LEXICO', label: 'Símbolo no reconocido (@, $, #)', arrows: 'to', font: { color: '#f87171' } }
         ];
 
-        var nodes = new vis.DataSet(nodesArray);
-        var edges = new vis.DataSet(edgesArray);
+        var nodes = new vis.DataSet(allNodes);
+        var edges = new vis.DataSet(allEdges);
         var container = document.getElementById('automata-network');
         
         var options = {
-            physics: false,
-            layout: {
-                hierarchical: {
-                    enabled: true,
-                    direction: 'LR',
-                    sortMethod: 'directed',
-                    nodeSpacing: 160,
-                    levelSeparation: 380,
-                    blockShifting: true,
-                    edgeMinimization: true,
-                    parentCentralization: true
-                }
+            physics: {
+                solver: 'forceAtlas2Based',
+                forceAtlas2Based: {
+                    gravitationalConstant: -120,
+                    centralGravity: 0.015,
+                    springLength: 160,
+                    springConstant: 0.06,
+                    damping: 0.4,
+                    avoidOverlap: 1.0
+                },
+                stabilization: { iterations: 200 }
             },
             interaction: {
                 hover: true,
@@ -392,22 +456,70 @@
             },
             nodes: {
                 borderWidth: 2,
-                shadow: { enabled: true, color: 'rgba(0,0,0,0.6)', size: 8, x: 2, y: 4 },
-                font: { size: 14, face: 'system-ui, sans-serif', color: '#ffffff' },
-                margin: 10
+                shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 10, x: 2, y: 5 },
+                margin: 14
             },
             edges: {
-                smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.25 },
+                smooth: { type: 'continuous', roundness: 0.15 },
                 color: { color: '#64748b', highlight: '#38bdf8', hover: '#38bdf8' },
-                font: { align: 'horizontal', size: 12, color: '#f1f5f9', background: 'rgba(15, 23, 42, 0.95)', strokeWidth: 0 },
-                arrows: { to: { scaleFactor: 1.1 } },
-                width: 1.8
+                font: { align: 'middle', size: 13, color: '#f1f5f9', background: 'rgba(15, 23, 42, 0.95)', strokeWidth: 0 },
+                arrows: { to: { scaleFactor: 1.2 } },
+                width: 2.2
             }
         };
 
         var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
         
-        // --- LÓGICA DE LA LUPA DE INSPECCIÓN ---
+        // --- FUNCIONES DE CONTROL DE ZOOM Y ENFOQUE ---
+        function zoomIn() {
+            network.moveTo({ scale: network.getScale() * 1.35, animation: { duration: 300 } });
+        }
+
+        function zoomOut() {
+            network.moveTo({ scale: network.getScale() * 0.75, animation: { duration: 300 } });
+        }
+
+        function centrarVista() {
+            network.fit({
+                animation: { duration: 600, easingFunction: 'easeInOutQuad' }
+            });
+        }
+
+        function enfocarNodo(nodeId) {
+            network.focus(nodeId, {
+                scale: 1.2,
+                animation: { duration: 600, easingFunction: 'easeInOutQuad' }
+            });
+            network.selectNodes([nodeId]);
+        }
+
+        // FILTRADO DINÁMICO POR CATEGORÍA
+        function filtrarCategoria(cat, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            if (cat === 'todas') {
+                nodes.clear();
+                edges.clear();
+                nodes.add(allNodes);
+                edges.add(allEdges);
+            } else {
+                var nodosFiltrados = allNodes.filter(n => n.categoria === cat || n.categoria === 'control');
+                var idSet = new Set(nodosFiltrados.map(n => n.id));
+                var aristasFiltradas = allEdges.filter(e => idSet.has(e.from) && idSet.has(e.to));
+
+                nodes.clear();
+                edges.clear();
+                nodes.add(nodosFiltrados);
+                edges.add(aristasFiltradas);
+            }
+
+            setTimeout(() => {
+                network.fit({ animation: { duration: 600 } });
+            }, 50);
+        }
+
+        // --- LUPA DE INSPECCIÓN INTERACTIVA ---
         var miniNodes = new vis.DataSet();
         var miniEdges = new vis.DataSet();
         var tooltipContainer = document.getElementById('tooltip-container');
@@ -421,11 +533,11 @@
                 var miniOptions = {
                     physics: { enabled: false },
                     interaction: { dragNodes: false, zoomView: false, hover: false, dragView: false },
-                    nodes: { font: { size: 11, color: '#ffffff' }, borderWidth: 2 },
+                    nodes: { font: { size: 12, color: '#ffffff' }, borderWidth: 2 },
                     edges: { 
                         smooth: { type: 'dynamic' }, 
-                        font: { size: 10, align: 'middle', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.8)' }, 
-                        arrows: { to: { scaleFactor: 0.7 } }
+                        font: { size: 11, align: 'middle', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.9)' }, 
+                        arrows: { to: { scaleFactor: 0.8 } }
                     }
                 };
                 tooltipNetwork = new vis.Network(miniContainer, { nodes: miniNodes, edges: miniEdges }, miniOptions);
@@ -436,7 +548,6 @@
             return text ? text.split('\n')[0] : '';
         }
 
-        // EVENTO: HOVER EN TRANSICIÓN
         network.on("hoverEdge", function (params) {
             initMiniNetwork();
             miniNodes.clear();
@@ -444,14 +555,16 @@
 
             var edgeId = params.edge;
             var edge = edges.get(edgeId);
+            if (!edge) return;
             var fromNode = nodes.get(edge.from);
             var toNode = nodes.get(edge.to);
+            if (!fromNode || !toNode) return;
 
             tooltipTitle.innerHTML = `Transición: <strong>${edge.label || 'sin condición'}</strong>`;
 
             miniNodes.add([
-                { ...fromNode, id: 'from', label: getFirstLine(fromNode.label), x: -80, y: 0, size: 20 },
-                { ...toNode, id: 'to', label: getFirstLine(toNode.label), x: 80, y: 0, size: 20 }
+                { ...fromNode, id: 'from', label: getFirstLine(fromNode.label), x: -90, y: 0, size: 22 },
+                { ...toNode, id: 'to', label: getFirstLine(toNode.label), x: 90, y: 0, size: 22 }
             ]);
 
             miniEdges.add({
@@ -466,7 +579,6 @@
             showTooltip();
         });
 
-        // EVENTO: HOVER EN NODO
         network.on("hoverNode", function (params) {
             initMiniNetwork();
             miniNodes.clear();
@@ -474,6 +586,7 @@
 
             var nodeId = params.node;
             var nodeData = nodes.get(nodeId);
+            if (!nodeData) return;
 
             tooltipTitle.innerHTML = `Estado: <strong>${getFirstLine(nodeData.label)}</strong>`;
 
@@ -483,7 +596,7 @@
                 label: getFirstLine(nodeData.label), 
                 x: 0, 
                 y: 0, 
-                size: 25 
+                size: 28 
             });
 
             var connectedEdges = network.getConnectedEdges(nodeId);
@@ -492,12 +605,13 @@
 
             neighbors.forEach((neighborId, index) => {
                 var neighborData = nodes.get(neighborId);
+                if (!neighborData) return;
                 var angle = (index / count) * 2 * Math.PI;
-                var radius = 70;
+                var radius = 80;
                 
                 var edge = edges.get(connectedEdges.find(eId => {
                     var e = edges.get(eId);
-                    return (e.from === nodeId && e.to === neighborId) || (e.from === neighborId && e.to === nodeId);
+                    return e && ((e.from === nodeId && e.to === neighborId) || (e.from === neighborId && e.to === nodeId));
                 }));
 
                 var isOut = edge && edge.from === nodeId;
@@ -511,21 +625,23 @@
                             label: getFirstLine(neighborData.label),
                             x: Math.cos(angle) * radius,
                             y: Math.sin(angle) * radius,
-                            size: 15,
-                            font: { size: 9, color: '#ffffff' }
+                            size: 16,
+                            font: { size: 10, color: '#ffffff' }
                         });
                     }
-                    miniEdges.add({
-                        ...edge, 
-                        from: isOut ? 'center' : mId, 
-                        to: isOut ? mId : 'center'
-                    });
-                } else {
+                    if (edge) {
+                        miniEdges.add({
+                            ...edge, 
+                            from: isOut ? 'center' : mId, 
+                            to: isOut ? mId : 'center'
+                        });
+                    }
+                } else if (edge) {
                     miniEdges.add({ ...edge, from: 'center', to: 'center' });
                 }
             });
 
-            infoText.innerHTML = `Estado actual: <strong>${getFirstLine(nodeData.label)}</strong><br><small>Mostrando transiciones y vecinos directos</small>`;
+            infoText.innerHTML = `Estado actual: <strong>${getFirstLine(nodeData.label)}</strong><br><small>Mostrando transiciones y conexiones directas</small>`;
             showTooltip();
         });
 
@@ -539,8 +655,12 @@
         network.on("blurEdge", () => tooltipContainer.style.display = 'none');
         network.on("blurNode", () => tooltipContainer.style.display = 'none');
 
-        network.once('afterDrawing', () => {
-            network.fit({ animation: { duration: 1000 } });
+        // AJUSTE ÓPTIMO AL CARGAR: Zoom legible sin alejarse al infinito
+        network.once('stabilizationIterationsDone', () => {
+            network.moveTo({
+                scale: 0.85,
+                animation: { duration: 800 }
+            });
         });
     </script>
 </body>

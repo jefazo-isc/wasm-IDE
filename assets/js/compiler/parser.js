@@ -197,7 +197,25 @@ class Parser {
     }
 
     isDoWhileTerminator() {
+        if (this.current().lexema === 'until') return true;
         if (this.current().lexema !== 'while') return false;
+        // Si hay un 'until' pendiente para este do, entonces 'while' es un bucle anidado, no el terminador
+        let posAux = this.pos;
+        let foundUntil = false;
+        let braceDepth = 0;
+        while (posAux < this.total) {
+            const tok = this.tokens[posAux];
+            if (tok.lexema === '{') braceDepth++;
+            else if (tok.lexema === '}') braceDepth--;
+            if (braceDepth <= 0 && tok.lexema === 'until') {
+                foundUntil = true;
+                break;
+            }
+            if (tok.lexema === 'main' || tok.tipo === 'EOF') break;
+            posAux++;
+        }
+        if (foundUntil) return false;
+
         const saved = this.pos;
         this.advance();
         this.expresion();
@@ -208,7 +226,7 @@ class Parser {
 
     lista_sentencias_do_cuerpo() {
         let nodos = [];
-        while (this.current().tipo !== 'EOF' && this.current().lexema !== '}') {
+        while (this.current().tipo !== 'EOF' && this.current().lexema !== '}' && this.current().lexema !== 'until') {
             if (this.isDoWhileTerminator()) break;
             const nodo = this.sentencia();
             if (nodo) {
@@ -435,7 +453,7 @@ class Parser {
             if (this.current().lexema === '}') {
                 this.advance();
             } else {
-                this.error("Se esperaba '}' antes de while");
+                this.error("Se esperaba '}' antes de until o while");
             }
         } else {
             if (this.current().lexema === '}') {
@@ -443,20 +461,23 @@ class Parser {
             }
         }
 
-        const tWhile = this.current();
+        const tTerm = this.current();
         let exp = null;
         let lineaCondicion = t.linea;
+        let nombreBucle = 'Bucle DO-WHILE';
 
-        if (this.matchLexema('while')) {
+        if (this.current().lexema === 'until' || this.current().lexema === 'while') {
+            if (this.current().lexema === 'until') nombreBucle = 'Bucle DO-UNTIL';
+            this.advance();
             exp = this.expresion();
-            lineaCondicion = tWhile.linea;
+            lineaCondicion = tTerm.linea;
         } else {
-            this.error("Se esperaba 'while' al final del do");
+            this.error("Se esperaba 'until' o 'while' al final del do");
             this.synchronize();
         }
 
         return {
-            name: 'Bucle DO-WHILE',
+            name: nombreBucle,
             linea: t.linea,
             children: [
                 { name: 'Cuerpo', linea: t.linea, children: cuerpo },

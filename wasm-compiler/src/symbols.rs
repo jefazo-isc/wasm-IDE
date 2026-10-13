@@ -1,80 +1,153 @@
 use serde::{Serialize, Deserialize};
-use std::collections::{HashMap, BTreeMap};
-use regex::Regex;
+use std::collections::BTreeMap;
+use crate::parser::AstNode;
+use crate::lexer;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SymbolInfo {
     pub identificador: String,
     pub tipo: String,
     pub lineas: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SymbolsResult {
     pub success: bool,
     pub simbolos: Vec<SymbolInfo>,
 }
 
-pub fn generar(codigo: &str) -> SymbolsResult {
-    let mut simbolos: BTreeMap<String, (String, Vec<usize>)> = BTreeMap::new();
+fn registrar_simbolo(
+    simbolos: &mut BTreeMap<String, (String, Vec<usize>)>,
+    identificador: &str,
+    tipo: &str,
+    linea: usize,
+) {
+    let id_limpio = identificador.trim();
+    if id_limpio.is_empty() {
+        return;
+    }
+    let entry = simbolos
+        .entry(id_limpio.to_string())
+        .or_insert_with(|| (tipo.to_string(), Vec::new()));
 
-    let re_class = Regex::new(r"class\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
-    let re_func = Regex::new(r"(?:function|int|float|void|real|bool)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(").unwrap();
-    let re_main_standalone = Regex::new(r"\bmain\b").unwrap();
-    let re_vars = Regex::new(r"(?:int|float|double|char|string|real|bool)\s+([a-zA-Z_][a-zA-Z0-9_,\s]*)").unwrap();
-    let re_assign = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)\s*(:=|=)").unwrap();
-
-    for (num, linea) in codigo.lines().enumerate() {
-        let num_linea = num + 1;
-
-        // 1. Detección de Clases
-        for captures in re_class.captures_iter(linea) {
-            let id = captures.get(1).unwrap().as_str().to_string();
-            let entry = simbolos.entry(id).or_insert_with(|| ("Clase".to_string(), Vec::new()));
-            if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
+    // Si ya existe pero el tipo anterior era genérico o uso y ahora tenemos una declaración concreta, actualizar tipo
+    if entry.0.contains("Uso") || entry.0 == "Identificador" {
+        if !tipo.contains("Uso") && tipo != "Identificador" {
+            entry.0 = tipo.to_string();
         }
+    }
 
-        // 2. Detección de Funciones
-        for captures in re_func.captures_iter(linea) {
-            let func = captures.get(1).unwrap().as_str().to_string();
-            if !["if", "while", "switch", "for", "main"].contains(&func.as_str()) {
-                let entry = simbolos.entry(func).or_insert_with(|| ("Función/Método".to_string(), Vec::new()));
-                if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
-            } else if func == "main" {
-                let entry = simbolos.entry(func).or_insert_with(|| ("Punto de Entrada".to_string(), Vec::new()));
-                if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
+    if linea > 0 && !entry.1.contains(&linea) {
+        entry.1.push(linea);
+    }
+}
+
+fn recorrer_ast(nodo: &AstNode, simbolos: &mut BTreeMap<String, (String, Vec<usize>)>) {
+    let name = &nodo.name;
+    let linea = nodo.linea;
+
+    // 1. Programa principal
+    if name.contains("Programa Principal") || name.to_lowercase().contains("main") {
+        registrar_simbolo(simbolos, "main", "Punto de Entrada", if linea > 0 { linea } else { 1 });
+    }
+
+    // 2. Declaración de variables: Nodo "Declaración Variable" con hijos Tipo e ID
+    if name.starts_with("Declaración Variable") {
+        if let Some(children) = &nodo.children {
+            let mut tipo_var = "Variable".to_string();
+            for c in children {
+                if c.name.starts_with("Tipo: ") {
+                    tipo_var = c.name.replacen("Tipo: ", "", 1).trim().to_string();
+                    break;
+                }
             }
-        }
 
-        if re_main_standalone.is_match(linea) && !simbolos.contains_key("main") {
-            let entry = simbolos.entry("main".to_string()).or_insert_with(|| ("Punto de Entrada".to_string(), Vec::new()));
-            if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
-        }
-
-        // 3. Declaración de Variables
-        for captures in re_vars.captures_iter(linea) {
-            let vars_str = captures.get(1).unwrap().as_str();
-            for v in vars_str.split(',') {
-                let var_limpia = v.trim().replace(|c: char| !c.is_ascii_alphanumeric() && c != '_', "");
-                if !var_limpia.is_empty() && var_limpia != "main" {
-                    let entry = simbolos.entry(var_limpia).or_insert_with(|| ("Variable".to_string(), Vec::new()));
-                    if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
+            for c in children {
+                if c.name.starts_with("ID: ") {
+                    let id = c.name.replacen("ID: ", "", 1).trim().to_string();
+                    let l = if c.linea > 0 { c.linea } else { linea };
+                    registrar_simbolo(simbolos, &id, &tipo_var, l);
                 }
             }
         }
+    }
 
-        // 4. Asignaciones directas o de uso
-        for captures in re_assign.captures_iter(linea) {
-            let var_name = captures.get(1).unwrap().as_str().to_string();
-            if !["let", "var", "const", "return", "if", "while", "for", "else", "do"].contains(&var_name.as_str()) {
-                let entry = simbolos.entry(var_name).or_insert_with(|| ("Asignación/Uso".to_string(), Vec::new()));
-                if !entry.1.contains(&num_linea) { entry.1.push(num_linea); }
+    // 3. Asignación: Nodo "Asignación" con hijo Variable
+    if name.starts_with("Asignación") {
+        if let Some(children) = &nodo.children {
+            for c in children {
+                if c.name.starts_with("Variable: ") {
+                    let id = c.name.replacen("Variable: ", "", 1).trim().to_string();
+                    let l = if c.linea > 0 { c.linea } else { linea };
+                    registrar_simbolo(simbolos, &id, "Asignación/Uso", l);
+                }
+            }
+        }
+    }
+
+    // 4. Incremento / Decremento
+    if name.starts_with("Incremento") || name.starts_with("Decremento") {
+        if let Some(children) = &nodo.children {
+            for c in children {
+                if c.name.starts_with("Variable: ") {
+                    let id = c.name.replacen("Variable: ", "", 1).trim().to_string();
+                    let l = if c.linea > 0 { c.linea } else { linea };
+                    registrar_simbolo(simbolos, &id, "Incremento/Uso", l);
+                }
+            }
+        }
+    }
+
+    // 5. Entrada cin
+    if name.starts_with("Sentencia IN") {
+        if let Some(children) = &nodo.children {
+            for c in children {
+                if c.name.starts_with("ID: ") {
+                    let id = c.name.replacen("ID: ", "", 1).trim().to_string();
+                    let l = if c.linea > 0 { c.linea } else { linea };
+                    registrar_simbolo(simbolos, &id, "Entrada (cin)", l);
+                }
+            }
+        }
+    }
+
+    // 6. Referencias a Identificadores en expresiones u otros nodos hoja
+    if name.starts_with("Identificador: ") {
+        let id = name.replacen("Identificador: ", "", 1).trim().to_string();
+        registrar_simbolo(simbolos, &id, "Identificador/Uso", linea);
+    }
+
+    // Visitar hijos
+    if let Some(children) = &nodo.children {
+        for child in children {
+            recorrer_ast(child, simbolos);
+        }
+    }
+}
+
+pub fn generar_con_ast(codigo: &str, ast_root: Option<&AstNode>) -> SymbolsResult {
+    let mut simbolos: BTreeMap<String, (String, Vec<usize>)> = BTreeMap::new();
+
+    if let Some(ast) = ast_root {
+        recorrer_ast(ast, &mut simbolos);
+    }
+
+    // Si el AST no produjo símbolos o falló, extraer tokens del léxico como fallback
+    if simbolos.is_empty() {
+        let lex_res = lexer::analizar(codigo);
+        for tok in lex_res.tokens {
+            if tok.tipo == "ID" {
+                registrar_simbolo(&mut simbolos, &tok.lexema, "Identificador", tok.linea);
+            } else if tok.tipo == "RESERVADA" && tok.lexema == "main" {
+                registrar_simbolo(&mut simbolos, "main", "Punto de Entrada", tok.linea);
             }
         }
     }
 
     let mut output = Vec::new();
-    for (id, (tipo, lineas)) in simbolos {
+    for (id, (tipo, mut lineas)) in simbolos {
+        lineas.sort();
+        lineas.dedup();
         let lineas_str = lineas.iter().map(|l| l.to_string()).collect::<Vec<String>>().join(", ");
         output.push(SymbolInfo {
             identificador: id,

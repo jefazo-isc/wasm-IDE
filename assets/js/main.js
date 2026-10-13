@@ -934,7 +934,7 @@ function showBottomPanel(e, id) {
 }
 
 // ==========================================================================
-// ARCHIVOS CLIENT-SIDE
+// GESTIÓN DE ARCHIVOS Y WORKSPACE
 // ==========================================================================
 async function nuevoArchivo() {
     if (DOM.editor.value.trim() !== '' && !await Modals.confirm('Nuevo', '¿Crear nuevo archivo? Se perderá lo no guardado.', 'Crear', 'Cancelar')) return;
@@ -945,7 +945,7 @@ async function nuevoArchivo() {
     currentOpenedFileAbsPath = '/' + nombre;
     limpiarPaneles();
     procesarCambiosPesados();
-    guardarEnServidor(nombre, false);
+    guardarArchivoEnWorkspace(nombre, false);
 }
 
 async function cerrarArchivo() {
@@ -957,7 +957,7 @@ async function cerrarArchivo() {
     procesarCambiosPesados();
 }
 
-async function guardarEnServidor(nombreArchivo, esGuardarComo = false) {
+async function guardarArchivoEnWorkspace(nombreArchivo, esGuardarComo = false) {
     if (typeof VirtualFS === 'undefined') return;
     const ruta = currentOpenedFileAbsPath || ('/' + nombreArchivo);
     const res = await VirtualFS.guardarArchivoFisico(ruta, DOM.editor.value);
@@ -972,7 +972,7 @@ async function guardarEnServidor(nombreArchivo, esGuardarComo = false) {
 
 async function guardarArchivo() {
     const name = DOM.currentFilename.value;
-    (name === 'Sin título' || !name) ? guardarComoArchivo() : guardarEnServidor(name, false);
+    (name === 'Sin título' || !name) ? guardarComoArchivo() : guardarArchivoEnWorkspace(name, false);
 }
 
 async function guardarComoArchivo() {
@@ -981,7 +981,7 @@ async function guardarComoArchivo() {
         if (res && res.success && res.isNative) {
             setFilename(res.handleName);
             currentOpenedFileAbsPath = res.ruta;
-            await guardarEnServidor(res.handleName, true);
+            await guardarArchivoEnWorkspace(res.handleName, true);
             return;
         } else if (res && res.cancelado) {
             return;
@@ -992,7 +992,7 @@ async function guardarComoArchivo() {
     if (!nombre) return;
     setFilename(nombre);
     currentOpenedFileAbsPath = '/' + nombre;
-    await guardarEnServidor(nombre, true);
+    await guardarArchivoEnWorkspace(nombre, true);
     if (typeof VirtualFS !== 'undefined') {
         VirtualFS.descargarArchivoLocal(nombre, DOM.editor.value);
     }
@@ -1039,13 +1039,13 @@ function mostrarNotificacion(msg, esError = false) {
     el.innerHTML = (esError ? '<i data-lucide="alert-circle" style="width:14px; height:14px; vertical-align:-2px;"></i> ' : '') + msg + ' - ' + new Date().toLocaleTimeString();
     el.style.color = esError ? '#ff6666' : 'var(--text-muted)';
     if (window.lucide) setTimeout(() => lucide.createIcons(), 10);
-    setTimeout(() => { el.style.color = ""; el.textContent = "⚡ Motor WebAssembly & Client-Side Activo"; }, 3000);
+    setTimeout(() => { el.style.color = ""; el.textContent = "⚡ Motor WebAssembly Activo"; }, 3000);
 }
 
 function verLogErrores() {
-    const logInfo = `=== LOG DEL IDE INDÓMITO (CLIENT-SIDE) ===\n\n` +
+    const logInfo = `=== LOG DEL SISTEMA (IDE INDÓMITO) ===\n\n` +
         `Estado: Activo\n` +
-        `Plataforma: Navegador Web (Client-Side Puro)\n` +
+        `Núcleo: WebAssembly (Rust) & Motor de Ejecución\n` +
         `Analizador Léxico: Listo\n` +
         `Analizador Sintáctico AST: Listo\n` +
         `Analizador Semántico: Listo\n` +

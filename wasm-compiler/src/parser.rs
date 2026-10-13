@@ -287,9 +287,36 @@ impl Parser {
     }
 
     fn is_do_while_terminator(&mut self) -> bool {
+        if self.current().lexema == "until" {
+            return true;
+        }
         if self.current().lexema != "while" {
             return false;
         }
+        // Si hay un 'until' pendiente para este do, entonces 'while' es un bucle anidado, no el terminador
+        let mut pos_aux = self.pos;
+        let mut found_until = false;
+        let mut brace_depth = 0;
+        while pos_aux < self.total {
+            let tok = &self.tokens[pos_aux];
+            if tok.lexema == "{" {
+                brace_depth += 1;
+            } else if tok.lexema == "}" {
+                brace_depth -= 1;
+            }
+            if brace_depth <= 0 && tok.lexema == "until" {
+                found_until = true;
+                break;
+            }
+            if tok.lexema == "main" || tok.tipo == "EOF" {
+                break;
+            }
+            pos_aux += 1;
+        }
+        if found_until {
+            return false;
+        }
+
         let saved = self.pos;
         self.advance();
         self.expresion();
@@ -300,7 +327,7 @@ impl Parser {
 
     fn lista_sentencias_do_cuerpo(&mut self) -> Vec<AstNode> {
         let mut nodos = Vec::new();
-        while self.current().tipo != "EOF" && self.current().lexema != "}" {
+        while self.current().tipo != "EOF" && self.current().lexema != "}" && self.current().lexema != "until" {
             if self.is_do_while_terminator() {
                 break;
             }
@@ -594,7 +621,7 @@ impl Parser {
             if self.current().lexema == "}" {
                 self.advance();
             } else {
-                self.error("Se esperaba '}' antes de while");
+                self.error("Se esperaba '}' antes de until o while");
             }
         } else {
             if self.current().lexema == "}" {
@@ -602,20 +629,25 @@ impl Parser {
             }
         }
 
-        let t_while = self.current();
+        let t_term = self.current();
         let mut exp = None;
         let mut linea_condicion = t.linea;
+        let mut nombre_bucle = "Bucle DO-WHILE".to_string();
 
-        if self.match_lexema("while") {
+        if self.current().lexema == "until" || self.current().lexema == "while" {
+            if self.current().lexema == "until" {
+                nombre_bucle = "Bucle DO-UNTIL".to_string();
+            }
+            self.advance();
             exp = self.expresion();
-            linea_condicion = t_while.linea;
+            linea_condicion = t_term.linea;
         } else {
-            self.error("Se esperaba 'while' al final del do");
+            self.error("Se esperaba 'until' o 'while' al final del do");
             self.synchronize();
         }
 
         AstNode {
-            name: "Bucle DO-WHILE".to_string(),
+            name: nombre_bucle,
             linea: t.linea,
             children: Some(vec![
                 AstNode {
