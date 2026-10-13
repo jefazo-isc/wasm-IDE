@@ -15,24 +15,23 @@
                 <button class="dropbtn"><i data-lucide="file-box"></i> Archivo</button>
                 <div class="dropdown-content">
                     <button onclick="nuevoArchivo()"><i data-lucide="file-plus"></i> Nuevo</button>
-                    <button onclick="abrirArchivo()"><i data-lucide="folder-open"></i> Abrir Local</button>
-                    <button onclick="cerrarArchivo()"><i data-lucide="x-circle"></i> Cerrar Archivo</button>
-                    <div class="separator"></div>
                     <button onclick="guardarArchivo()"><i data-lucide="save"></i> Guardar</button>
-                    <button onclick="guardarComoArchivo()"><i data-lucide="download"></i> Guardar como (Descargar)</button>
-                    <button onclick="verLogErrores()"><i data-lucide="scroll-text"></i> Log</button>
+                    <button onclick="cerrarArchivo()"><i data-lucide="x-circle"></i> Cerrar pestaña</button>
                     <div class="separator"></div>
-                    <button onclick="cerrarVentana()"><i data-lucide="log-out"></i> Salir del IDE</button>
+                    <button onclick="abrirArchivo()"><i data-lucide="upload"></i> Subir</button>
+                    <button onclick="guardarComoArchivo()"><i data-lucide="download"></i> Descargar</button>
+                    <div class="separator"></div>
+                    <button onclick="salirIDE()"><i data-lucide="refresh-cw"></i> Reiniciar Workspace</button>
                 </div>
             </div>
             
             <div class="dropdown">
                 <button class="dropbtn"><i data-lucide="cpu"></i> Compilar</button>
                 <div class="dropdown-content">
-                    <button onclick="compilarFase('lexico')"><i data-lucide="search"></i> Léxico</button>
+                    <button onclick="compilarFase('lexico')"><i data-lucide="scan-search"></i> Léxico</button>
                     <button onclick="compilarFase('sintactico')"><i data-lucide="git-merge"></i> Sintáctico</button>
                     <button onclick="compilarFase('semantico')"><i data-lucide="brain"></i> Semántico</button>
-                    <button onclick="compilarFase('intermedio')"><i data-lucide="settings"></i> Intermedio</button>
+                    <button onclick="compilarFase('intermedio')"><i data-lucide="binary"></i> Intermedio</button>
                     <button onclick="compilarFase('simbolos')"><i data-lucide="table"></i> Símbolos</button>
                     <div class="separator"></div>
                     <button onclick="compilarFase('ejecucion')" class="btn-ejecutar"><i data-lucide="play"></i> Ejecutar</button>
@@ -40,28 +39,35 @@
             </div>
             
             <div class="dropdown">
-                <button class="dropbtn"><i data-lucide="eye"></i> Vista</button>
+                <button class="dropbtn"><i data-lucide="layout"></i> Vista</button>
                 <div class="dropdown-content">
-                    <button onclick="toggleExplorer()"><i data-lucide="folder-tree"></i> Alternar Explorador</button>
+                    <button onclick="toggleExplorer()"><i data-lucide="folder-tree"></i> Explorador</button>
                     <button onclick="toggleRightPanel()"><i data-lucide="panel-right"></i> Panel Compilador</button>
-                    <button onclick="toggleBottomPanel()"><i data-lucide="panel-bottom"></i> Panel Inferior</button>
+                    <button onclick="toggleBottomPanel()"><i data-lucide="panel-bottom"></i> Panel Errores</button>
                     <div class="separator"></div>
-                    <button onclick="toggleTheme()"><i data-lucide="moon"></i> Tema Claro/Oscuro</button>
-                    <button onclick="toggleRGB()"><i data-lucide="palette"></i> Tema RGB (Glow)</button>
+                    <button onclick="toggleTheme()"><i data-lucide="sun-moon"></i> Tema Claro / Oscuro</button>
+                    <button onclick="toggleRGB()"><i data-lucide="palette"></i> Tema RGB</button>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn"><i data-lucide="wrench"></i> Herramientas</button>
+                <div class="dropdown-content">
+                    <button onclick="toggleAIPanel()"><i data-lucide="bot"></i> Asistente IA</button>
+                    <button onclick="configurarLlavesIA()"><i data-lucide="key"></i> API Keys</button>
                     <div class="separator"></div>
-                    <button onclick="toggleAIPanel()"><i data-lucide="bot"></i> Alternar Panel de IA</button>
-                    <button onclick="configurarLlavesIA()"><i data-lucide="key"></i> Configurar Llaves IA</button>
-                    <button onclick="abrirAutomata()"><i data-lucide="network"></i> Ver Autómata Léxico</button>
+                    <button onclick="abrirAutomata()"><i data-lucide="network"></i> Autómata Léxico</button>
+                    <button onclick="verLogErrores()"><i data-lucide="scroll-text"></i> Log del Sistema</button>
                 </div>
             </div>
         </div>
         
         <div class="menu-right">
-            <button class="menu-btn" onclick="nuevoArchivo()" title="Nuevo Archivo"><i data-lucide="file-plus"></i></button>
+            <button class="menu-btn" onclick="nuevoArchivo()" title="Nuevo"><i data-lucide="file-plus"></i></button>
             <button class="menu-btn" onclick="guardarArchivo()" title="Guardar"><i data-lucide="save"></i></button>
-            <button class="menu-btn" onclick="toggleTheme()" title="Tema"><i data-lucide="moon"></i></button>
-            <button class="menu-btn" onclick="toggleRightPanel()" title="Alternar Panel de Compilador"><i data-lucide="panel-right"></i></button>
-            <button class="menu-btn" onclick="configurarLlavesIA()" title="Configurar API Keys"><i data-lucide="key"></i></button>
+            <button class="menu-btn" onclick="toggleTheme()" title="Cambiar tema"><i data-lucide="sun-moon"></i></button>
+            <button class="menu-btn" onclick="toggleRightPanel()" title="Panel Compilador"><i data-lucide="panel-right"></i></button>
+            <button class="menu-btn" onclick="toggleAIPanel()" title="Asistente IA"><i data-lucide="bot"></i></button>
             <button class="menu-btn btn-ejecutar" onclick="compilarFase('ejecucion')" title="Ejecutar"><i data-lucide="play"></i></button>
         </div>
     </div>
@@ -82,6 +88,9 @@
         <div style="display: flex; flex-direction: column; flex: 1; min-width: 0; overflow: hidden;">
             <div class="top-layout">
                 <div class="editor-section" id="editor_container">
+                    <div class="editor-tabs" id="editor_tabs">
+                        <!-- Las pestañas se generan dinámicamente desde JS -->
+                    </div>
                     <div class="editor-wrapper">
                         <div class="line-numbers" id="line_numbers">1</div>
                         <div class="code-area">

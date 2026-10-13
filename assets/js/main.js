@@ -33,6 +33,135 @@ let currentLineCount = 0;
 let saveInProgress = false;
 
 // ==========================================================================
+// SISTEMA DE PESTAÑAS (Tabs de archivos abiertos)
+// ==========================================================================
+const openTabs = []; // { path, name, content, scrollTop, cursorPos }
+let activeTabPath = null;
+
+const TabManager = {
+    /** Abre o enfoca una pestaña. Si ya existe, la activa; si no, la crea. */
+    open(path, name, content) {
+        const existing = openTabs.find(t => t.path === path);
+        if (existing) {
+            this.activate(path);
+            return;
+        }
+        openTabs.push({
+            path,
+            name,
+            content: content ?? '',
+            scrollTop: 0,
+            cursorPos: 0
+        });
+        this.activate(path);
+    },
+
+    /** Activa una pestaña, guardando el estado de la anterior */
+    activate(path) {
+        // Guardar estado de la pestaña actual antes de cambiar
+        if (activeTabPath) {
+            const current = openTabs.find(t => t.path === activeTabPath);
+            if (current) {
+                current.content = DOM.editor.value;
+                current.scrollTop = DOM.editor.scrollTop;
+                current.cursorPos = DOM.editor.selectionStart;
+            }
+        }
+
+        activeTabPath = path;
+        const tab = openTabs.find(t => t.path === path);
+        if (tab) {
+            DOM.editor.value = tab.content;
+            currentOpenedFileAbsPath = tab.path;
+            setFilename(tab.name);
+            procesarCambiosPesados();
+
+            // Restaurar posición del cursor y scroll
+            requestAnimationFrame(() => {
+                DOM.editor.scrollTop = tab.scrollTop;
+                DOM.editor.setSelectionRange(tab.cursorPos, tab.cursorPos);
+                actualizarCursorRápido();
+            });
+        }
+        this.render();
+    },
+
+    /** Cierra una pestaña, con confirmación si tiene cambios */
+    async close(path) {
+        const idx = openTabs.findIndex(t => t.path === path);
+        if (idx === -1) return;
+
+        // Si es la pestaña activa, sincronizar el contenido
+        if (path === activeTabPath) {
+            openTabs[idx].content = DOM.editor.value;
+        }
+
+        // Verificar cambios sin guardar contra el VirtualFS
+        if (typeof VirtualFS !== 'undefined') {
+            const saved = VirtualFS.cargarArchivo(path);
+            if (saved.success && saved.contenido !== openTabs[idx].content) {
+                if (!await Modals.confirm('Cerrar pestaña', `¿Cerrar <b>${openTabs[idx].name}</b> sin guardar los cambios?`, 'Cerrar', 'Cancelar')) {
+                    return;
+                }
+            }
+        }
+
+        openTabs.splice(idx, 1);
+
+        if (path === activeTabPath) {
+            if (openTabs.length > 0) {
+                // Activar la pestaña vecina
+                const newIdx = Math.min(idx, openTabs.length - 1);
+                this.activate(openTabs[newIdx].path);
+            } else {
+                // No quedan pestañas
+                activeTabPath = null;
+                currentOpenedFileAbsPath = '';
+                DOM.editor.value = '';
+                setFilename('Sin título');
+                limpiarPaneles();
+                procesarCambiosPesados();
+                this.render();
+            }
+        } else {
+            this.render();
+        }
+    },
+
+    /** Actualiza el contenido guardado de la pestaña activa */
+    syncActive() {
+        if (!activeTabPath) return;
+        const tab = openTabs.find(t => t.path === activeTabPath);
+        if (tab) {
+            tab.content = DOM.editor.value;
+        }
+    },
+
+    /** Renderiza la barra de pestañas */
+    render() {
+        const container = document.getElementById('editor_tabs');
+        if (!container) return;
+
+        if (openTabs.length === 0) {
+            container.innerHTML = '<div class="editor-tabs-empty">Sin archivos abiertos</div>';
+            return;
+        }
+
+        container.innerHTML = openTabs.map(tab => {
+            const isActive = tab.path === activeTabPath;
+            const safeP = tab.path.replace(/'/g, "\\'");
+            return `<div class="editor-tab ${isActive ? 'active' : ''}" onclick="TabManager.activate('${safeP}')" title="${tab.path}">
+                        <i data-lucide="file-code-2" class="editor-tab-icon"></i>
+                        <span class="editor-tab-name">${tab.name}</span>
+                        <button class="editor-tab-close" onclick="event.stopPropagation(); TabManager.close('${safeP}')" title="Cerrar">×</button>
+                    </div>`;
+        }).join('');
+
+        setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
+    }
+};
+
+// ==========================================================================
 // SISTEMA DE MODALES
 // ==========================================================================
 const Modals = {
@@ -44,9 +173,11 @@ const Modals = {
         overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; justify-content: center; align-items: center;';
         
         const btnsHtml = buttons.map((b, i) => {
-            const bg = b.primary ? 'var(--accent-primary)' : 'var(--bg-tertiary)';
-            const fw = b.primary ? 'bold' : 'normal';
-            return `<button id="mbtn_${i}" style="padding: 8px 15px; cursor: pointer; background: ${bg}; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; margin-left: 10px; font-weight: ${fw}; transition: background 0.2s;">${b.text}</button>`;
+            if (b.primary) {
+                return `<button id="mbtn_${i}" style="padding: 8px 18px; cursor: pointer; background: #1a8cef; color: #fff; border: 1px solid #3aa0f5; border-radius: 5px; margin-left: 10px; font-weight: bold; font-size: 13px; transition: background 0.2s, transform 0.1s;" onmouseover="this.style.background='#3aa0f5'" onmouseout="this.style.background='#1a8cef'">${b.text}</button>`;
+            } else {
+                return `<button id="mbtn_${i}" style="padding: 8px 18px; cursor: pointer; background: rgba(255,255,255,0.08); color: var(--text-primary); border: 1px solid var(--text-muted); border-radius: 5px; margin-left: 10px; font-weight: 500; font-size: 13px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">${b.text}</button>`;
+            }
         }).join('');
 
         const box = document.createElement('div');
@@ -199,11 +330,7 @@ function abrirDesdeExplorador(rutaAbsoluta, nombre) {
     if (typeof VirtualFS === 'undefined') return;
     const res = VirtualFS.cargarArchivo(rutaAbsoluta);
     if (res.success) {
-        DOM.editor.value = res.contenido;
-        setFilename(res.nombre);
-        currentOpenedFileAbsPath = res.ruta_absoluta;
-        procesarCambiosPesados();
-        limpiarPaneles();
+        TabManager.open(res.ruta_absoluta, res.nombre, res.contenido);
         mostrarNotificacion('<i data-lucide="folder-open" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Abierto');
     } else {
         mostrarNotificacion("Error al abrir archivo", true);
@@ -529,10 +656,7 @@ async function compilarFase(fase) {
             // RENDER DE LA TABLA LÉXICA
             let tablaHTML = `
                 <div class="panel-header-sticky">
-                    <div>
-                        <div class="panel-title-glow">=== TABLA DE TOKENS ===</div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top:2px;">Haz clic en una fila para saltar al código</div>
-                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Clic en una fila para ir al código</div>
                     <button class="btn-reload" onclick="compilarFase('lexico')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
                 </div>
                 <div class="table-container">
@@ -600,10 +724,7 @@ async function compilarFase(fase) {
             
             let html = `
                 <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div class="panel-title-glow">=== ÁRBOL SINTÁCTICO ===</div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top:2px;" id="sintactico_hint">Arrastra para mover • Rueda para Zoom • Clic para colapsar</div>
-                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted);" id="sintactico_hint">Arrastra • Rueda para Zoom • Clic para colapsar</div>
                     <div style="display: flex; gap: 5px;">
                         <button class="btn-reload" onclick="exportarSintactico()" title="Exportar JSON" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="download" style="width:14px; height:14px;"></i> Exportar</button>
                         <button class="btn-reload" onclick="toggleVistaSintactica()" title="Alternar Vista" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="eye" style="width:14px; height:14px;"></i> Vista</button>
@@ -670,29 +791,55 @@ async function compilarFase(fase) {
                 }
             }
         } else if (fase === 'semantico') {
-            panelActivo.textContent = res;
+            const lineas = res.split('\n').filter(l => l.trim());
+            const errores = lineas.filter(l => l.startsWith('Error Semántico') || l.includes('Error'));
+            const info = lineas.filter(l => !l.startsWith('Error Semántico') && !l.includes('Error'));
+            
+            let html = `
+                <div class="panel-header-sticky">
+                    <div style="font-size: 11px; color: var(--text-muted);">${info.length} resultado(s) de análisis</div>
+                    <button class="btn-reload" onclick="compilarFase('semantico')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                </div>
+                <div class="semantic-output">
+            `;
+
+            if (info.length === 0) {
+                html += '<div class="success-log"><i data-lucide="check-circle" style="width:16px; height:16px; margin-right:5px;"></i> Análisis semántico completado sin errores.</div>';
+            }
+
+            info.forEach(l => {
+                const matchLn = l.match(/Línea\s+(\d+)/i);
+                const ln = matchLn ? matchLn[1] : null;
+                const clickAttr = ln ? `onclick="irALinea(${ln})" style="cursor:pointer;"` : '';
+
+                if (l.includes('Tabla de Símbolos') || l.includes('===')) {
+                    html += `<div class="semantic-section-title">${l}</div>`;
+                } else {
+                    html += `<div class="semantic-info-line" ${clickAttr}>${l}</div>`;
+                }
+            });
+
+            html += '</div>';
+            panelActivo.innerHTML = html;
             
             // Actualizar panel inferior de errores semánticos
             const panelErrores = document.getElementById('panel_err_sem');
             if (panelErrores) {
-                if (res.includes("Error Semántico")) {
-                    const lineasError = res.split('\n').filter(l => l.startsWith('Error Semántico'));
-                    panelErrores.innerHTML = lineasError.map(l => {
+                if (errores.length > 0) {
+                    panelErrores.innerHTML = errores.map(l => {
                         const m = l.match(/Línea\s+(\d+)/i);
                         const ln = m ? m[1] : 1;
                         return `<div class="interactive-log-line error-log" onclick="irALinea(${ln})">${l}</div>`;
                     }).join('');
                 } else {
-                    panelErrores.innerHTML = '<div class="success-log"><i data-lucide="check-circle" style="width:16px; height:16px; margin-right:5px; vertical-align:middle;"></i> Análisis semántico completado sin inconsistencias.</div>';
+                    panelErrores.innerHTML = '<div class="success-log"><i data-lucide="check-circle" style="width:16px; height:16px; margin-right:5px;"></i> Análisis semántico completado sin inconsistencias.</div>';
                 }
             }
         } else if (fase === 'simbolos') {
             const data = res;
             let html = `
                 <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div class="panel-title-glow">=== TABLA DE SÍMBOLOS ===</div>
-                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Variables e identificadores detectados</div>
                     <button class="btn-reload" onclick="compilarFase('simbolos')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
                 </div>
                 <div class="table-container">
@@ -799,10 +946,7 @@ async function compilarFase(fase) {
             let html = `
                 <div class="tac-container">
                     <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div class="panel-title-glow">=== CÓDIGO INTERMEDIO (3AC) ===</div>
-                            <div style="font-size: 11px; color: var(--text-muted); margin-top:2px;">Código de 3 direcciones generado</div>
-                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Código de 3 direcciones</div>
                         <div style="display: flex; gap: 5px;">
                             <button class="btn-reload" onclick="copiarCodigoIntermedio()" title="Copiar código al portapapeles" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="copy" style="width:14px; height:14px;"></i> Copiar</button>
                             <button class="btn-reload" onclick="compilarFase('intermedio')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
@@ -819,7 +963,27 @@ async function compilarFase(fase) {
             `;
             panelActivo.innerHTML = html;
         } else if (panelActivo) {
-            panelActivo.textContent = res;
+            // Panel genérico (Ejecución / Resultados)
+            const lineas = res.split('\n');
+            let html = `
+                <div class="panel-header-sticky">
+                    <div style="font-size: 11px; color: var(--text-muted);">${lineas.length} línea(s) de salida</div>
+                    <button class="btn-reload" onclick="compilarFase('${fase}')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                </div>
+                <div class="execution-output">
+            `;
+            lineas.forEach((l, i) => {
+                const safe = l.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                if (l.includes('Error') || l.includes('error')) {
+                    html += `<div class="exec-line exec-error"><span class="exec-line-num">${i + 1}</span>${safe}</div>`;
+                } else if (l.trim() === '') {
+                    html += `<div class="exec-line"><span class="exec-line-num">${i + 1}</span>&nbsp;</div>`;
+                } else {
+                    html += `<div class="exec-line"><span class="exec-line-num">${i + 1}</span>${safe}</div>`;
+                }
+            });
+            html += '</div>';
+            panelActivo.innerHTML = html;
         }
 
         if (fase === 'ejecucion' || fase === 'sintactico') {
@@ -829,7 +993,7 @@ async function compilarFase(fase) {
         setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
     } catch (e) { 
         console.error("Error en compilación:", e);
-        if (panelActivo) panelActivo.textContent = "Error al procesar: " + e.message; 
+        if (panelActivo) panelActivo.innerHTML = `<div class="panel-header-sticky"><div style="font-size: 11px; color: #ff6b6b;">Error en compilación</div></div><div class="interactive-log-line error-log" style="margin-top:8px;">${e.message}</div>`; 
     }
 }
 
@@ -937,24 +1101,37 @@ function showBottomPanel(e, id) {
 // GESTIÓN DE ARCHIVOS Y WORKSPACE
 // ==========================================================================
 async function nuevoArchivo() {
-    if (DOM.editor.value.trim() !== '' && !await Modals.confirm('Nuevo', '¿Crear nuevo archivo? Se perderá lo no guardado.', 'Crear', 'Cancelar')) return;
-    let nombre = await Modals.prompt("Nuevo Archivo", "Nombre del archivo:", "codigo." + currentExt);
-    if (!nombre) return;
-    DOM.editor.value = '';
-    setFilename(nombre);
-    currentOpenedFileAbsPath = '/' + nombre;
-    limpiarPaneles();
-    procesarCambiosPesados();
-    guardarArchivoEnWorkspace(nombre, false);
+    let error = '';
+    let defName = 'codigo.' + currentExt;
+    while (true) {
+        const msg = (error ? `<div style="color:#ff6666; margin-bottom:8px; font-size:13px;">⚠ ${error}</div>` : '') + 'Nombre del archivo:';
+        if (error) {
+            setTimeout(() => {
+                const modal = document.querySelector('#ide_modal_overlay > div');
+                if (modal) {
+                    modal.style.animation = 'modal-shake 0.45s ease';
+                    modal.addEventListener('animationend', () => modal.style.animation = '', { once: true });
+                }
+            }, 30);
+        }
+        const nombre = await Modals.prompt("Nuevo Archivo", msg, defName);
+        if (!nombre) return;
+        defName = nombre;
+        const path = '/' + nombre;
+        if (typeof VirtualFS !== 'undefined' && VirtualFS.cargarArchivo(path).success) {
+            error = `El archivo <b>${nombre}</b> ya existe.`;
+            continue;
+        }
+        guardarArchivoEnWorkspace(nombre, false);
+        TabManager.open(path, nombre, '');
+        return;
+    }
 }
 
 async function cerrarArchivo() {
-    if (DOM.editor.value.trim() !== '' && !await Modals.confirm('Cerrar', '¿Cerrar sin guardar?', 'Cerrar', 'Cancelar')) return;
-    DOM.editor.value = '';
-    setFilename('Sin título');
-    currentOpenedFileAbsPath = '';
-    limpiarPaneles();
-    procesarCambiosPesados();
+    if (activeTabPath) {
+        TabManager.close(activeTabPath);
+    }
 }
 
 async function guardarArchivoEnWorkspace(nombreArchivo, esGuardarComo = false) {
@@ -971,24 +1148,29 @@ async function guardarArchivoEnWorkspace(nombreArchivo, esGuardarComo = false) {
 }
 
 async function guardarArchivo() {
+    TabManager.syncActive();
     const name = DOM.currentFilename.value;
     (name === 'Sin título' || !name) ? guardarComoArchivo() : guardarArchivoEnWorkspace(name, false);
 }
 
 async function guardarComoArchivo() {
+    TabManager.syncActive();
+    const nombreActual = DOM.currentFilename.value.replace(/^\//, '') || 'archivo.txt';
+
+    // Si el navegador soporta el diálogo nativo del SO, usarlo directamente
     if (typeof VirtualFS !== 'undefined' && 'showSaveFilePicker' in window) {
-        const res = await VirtualFS.descargarArchivoLocal(DOM.currentFilename.value.replace(/^\//, ''), DOM.editor.value);
+        const res = await VirtualFS.descargarArchivoLocal(nombreActual, DOM.editor.value);
         if (res && res.success && res.isNative) {
             setFilename(res.handleName);
             currentOpenedFileAbsPath = res.ruta;
             await guardarArchivoEnWorkspace(res.handleName, true);
-            return;
-        } else if (res && res.cancelado) {
-            return;
+            mostrarNotificacion('<i data-lucide="download" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Descargado');
         }
+        return;
     }
 
-    let nombre = await Modals.prompt("Guardar Como", "Nombre del archivo a descargar y guardar:", DOM.currentFilename.value.replace(/^\//, ''));
+    // Fallback para navegadores sin File System Access API
+    let nombre = await Modals.prompt("Descargar", "Nombre del archivo:", nombreActual);
     if (!nombre) return;
     setFilename(nombre);
     currentOpenedFileAbsPath = '/' + nombre;
@@ -1002,13 +1184,9 @@ async function abrirArchivo() {
     if (typeof VirtualFS !== 'undefined') {
         const res = await VirtualFS.abrirArchivoDesdeDisco();
         if (res && res.success) {
-            DOM.editor.value = res.contenido;
-            setFilename(res.nombre);
-            currentOpenedFileAbsPath = res.ruta;
-            procesarCambiosPesados();
-            limpiarPaneles();
+            TabManager.open(res.ruta, res.nombre, res.contenido);
             cargarExplorador();
-            mostrarNotificacion('<i data-lucide="folder-open" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Archivo cargado');
+            mostrarNotificacion('<i data-lucide="upload" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Archivo importado');
         }
     }
 }
@@ -1020,12 +1198,26 @@ async function borrarArchivo(event, rutaAbsoluta, nombre) {
     if (typeof VirtualFS !== 'undefined') {
         VirtualFS.borrarArchivo(rutaAbsoluta);
         mostrarNotificacion('<i data-lucide="trash" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Archivo eliminado');
-        if (currentOpenedFileAbsPath === rutaAbsoluta) {
-            DOM.editor.value = '';
-            setFilename('Sin título');
-            currentOpenedFileAbsPath = '';
-            limpiarPaneles();
-            procesarCambiosPesados();
+        // Cerrar la pestaña del archivo eliminado sin pedir confirmación
+        const tabIdx = openTabs.findIndex(t => t.path === rutaAbsoluta);
+        if (tabIdx !== -1) {
+            openTabs.splice(tabIdx, 1);
+            if (activeTabPath === rutaAbsoluta) {
+                if (openTabs.length > 0) {
+                    const newIdx = Math.min(tabIdx, openTabs.length - 1);
+                    TabManager.activate(openTabs[newIdx].path);
+                } else {
+                    activeTabPath = null;
+                    currentOpenedFileAbsPath = '';
+                    DOM.editor.value = '';
+                    setFilename('Sin título');
+                    limpiarPaneles();
+                    procesarCambiosPesados();
+                    TabManager.render();
+                }
+            } else {
+                TabManager.render();
+            }
         }
         cargarExplorador();
     }
@@ -1037,14 +1229,13 @@ async function borrarArchivo(event, rutaAbsoluta, nombre) {
 function mostrarNotificacion(msg, esError = false) {
     const el = document.getElementById('status_msg');
     el.innerHTML = (esError ? '<i data-lucide="alert-circle" style="width:14px; height:14px; vertical-align:-2px;"></i> ' : '') + msg + ' - ' + new Date().toLocaleTimeString();
-    el.style.color = esError ? '#ff6666' : 'var(--text-muted)';
+    el.style.color = esError ? '#ffaaaa' : 'rgba(255, 255, 255, 0.9)';
     if (window.lucide) setTimeout(() => lucide.createIcons(), 10);
-    setTimeout(() => { el.style.color = ""; el.textContent = "⚡ Motor WebAssembly Activo"; }, 3000);
+    setTimeout(() => { el.style.color = "#fff"; el.textContent = "⚡ Motor WebAssembly Activo"; }, 3000);
 }
 
 function verLogErrores() {
-    const logInfo = `=== LOG DEL SISTEMA (IDE INDÓMITO) ===\n\n` +
-        `Estado: Activo\n` +
+    const logInfo = `Estado: Activo\n` +
         `Núcleo: WebAssembly (Rust) & Motor de Ejecución\n` +
         `Analizador Léxico: Listo\n` +
         `Analizador Sintáctico AST: Listo\n` +
@@ -1151,13 +1342,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof VirtualFS !== 'undefined') {
         const initFile = VirtualFS.cargarArchivo('/testLexico.txt');
         if (initFile.success) {
-            DOM.editor.value = initFile.contenido;
-            setFilename('testLexico.txt');
-            currentOpenedFileAbsPath = '/testLexico.txt';
+            TabManager.open('/testLexico.txt', 'testLexico.txt', initFile.contenido);
+        } else {
+            TabManager.render();
         }
+    } else {
+        TabManager.render();
     }
     
-    procesarCambiosPesados();
     cargarExplorador();
     compilarFase('sintactico');
     if (window.lucide) lucide.createIcons();
