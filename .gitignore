@@ -17,3 +17,8 @@ workspace/
 
 # Archivos pesados/binarios archivados
 docs/archive/
+
+# Artefactos temporales y salidas de herramientas
+dist/
+repomix-output.xml
+aitools/repomix-output.xml

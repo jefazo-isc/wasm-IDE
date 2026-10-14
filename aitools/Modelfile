@@ -1,0 +1,2 @@
+FROM tripolskypetr/qwen3.5-uncensored-aggressive:4b
+PARAMETER num_ctx 81920
