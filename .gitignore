@@ -22,3 +22,4 @@ docs/archive/
 dist/
 repomix-output.xml
 aitools/repomix-output.xml
+.env
