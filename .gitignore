@@ -1,8 +1,19 @@
-.env
+# Archivos temporales y de depuración
 _temp_code.tmp
 error_log.txt
+
+# Configuración de editores y asistentes de IA
 .cursor/
-*.zip
-*.pdf
+.aider*
+
+# Artefactos de compilación y espacio de trabajo local
+assets/js/compiler/dist/
 wasm-compiler/target/
 workspace/
+
+# Archivos comprimidos y documentos binarios
+*.pdf
+*.zip
+
+# Archivos pesados/binarios archivados
+docs/archive/
