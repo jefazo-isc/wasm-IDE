@@ -948,17 +948,17 @@ impl Parser {
                 linea: t.linea,
                 children: None,
             });
-        } else if t.tipo == "ID" {
-            self.advance();
-            return Some(AstNode {
-                name: format!("Identificador: {}", t.lexema),
-                linea: t.linea,
-                children: None,
-            });
         } else if t.lexema == "true" || t.lexema == "false" {
             self.advance();
             return Some(AstNode {
                 name: format!("Booleano: {}", t.lexema),
+                linea: t.linea,
+                children: None,
+            });
+        } else if t.tipo == "ID" {
+            self.advance();
+            return Some(AstNode {
+                name: format!("Identificador: {}", t.lexema),
                 linea: t.linea,
                 children: None,
             });

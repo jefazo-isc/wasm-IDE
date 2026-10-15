@@ -30,7 +30,7 @@ lazy_static! {
     static ref PATRONES: Vec<(&'static str, Regex)> = vec![
         ("COM_MULTI", Regex::new(r"(?s)^\/\*.*?\*\/").unwrap()),
         ("COM_SIMPLE", Regex::new(r"^\/\/[^\n]*").unwrap()),
-        ("RESERVADA", Regex::new(r"^(if|else|end|do|while|switch|case|int|float|bool|main|cin|cout|real|then|until)\b").unwrap()),
+        ("RESERVADA", Regex::new(r"^(if|else|end|do|while|switch|case|int|float|bool|main|cin|cout|real|then|until|true|false)\b").unwrap()),
         ("ID", Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*").unwrap()),
         ("NUM_REAL", Regex::new(r"^[0-9]+\.[0-9]+").unwrap()),
         ("ERR_NUM", Regex::new(r"^[0-9]+\.").unwrap()), // Replaces ^[0-9]+\.(?![0-9]) since NUM_REAL is checked first

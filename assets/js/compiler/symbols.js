@@ -1,30 +1,15 @@
 /**
  * IDE Indómito - Generador de Tabla de Símbolos basado en Árbol Sintáctico (AST)
- * Modulo Tabla de Simbolos Client-side
+ * Fase 1: Construcción en Preorden, Tabla Hash y Rechazo Estricto de no-declarados
  */
 const SymbolTableGenerator = {
     generar(codigo, astResult) {
         if (typeof codigo !== 'string') codigo = '';
 
-        const simbolos = {};
+        // Estructura de Tabla Hash para almacenar los identificadores
+        const tablaHash = {};
 
-        const registrarSimbolo = (identificador, tipo, linea) => {
-            if (!identificador || typeof identificador !== 'string') return;
-            const idLimpio = identificador.trim();
-            if (!idLimpio) return;
-
-            if (!simbolos[idLimpio]) {
-                simbolos[idLimpio] = {
-                    tipo: tipo,
-                    lineas: []
-                };
-            }
-            if (linea && !simbolos[idLimpio].lineas.includes(linea)) {
-                simbolos[idLimpio].lineas.push(linea);
-            }
-        };
-
-        // Si no se proporcionó un AST previo, generarlo con Lexer + Parser
+        // Obtener AST
         let ast = null;
         if (astResult && astResult.tree) {
             ast = astResult.tree;
@@ -35,98 +20,141 @@ const SymbolTableGenerator = {
             ast = res.tree;
         }
 
-        // Recorrido recursivo del Árbol Sintáctico (AST)
-        const recorrerAST = (nodo) => {
+        // 1. Recorrido en Preorden sobre el AST para construir memoria contextual (atributos heredados)
+        const recolectarDeclaracionesPreorden = (nodo) => {
             if (!nodo) return;
 
             const name = nodo.name || '';
-            const linea = nodo.linea || null;
+            const linea = nodo.linea || 1;
 
-            // 1. Programa principal
             if (name.includes('Programa Principal') || name.toLowerCase().includes('main')) {
-                registrarSimbolo('main', 'Punto de Entrada', linea || 1);
+                tablaHash['main'] = {
+                    tipo: 'Punto de Entrada',
+                    lineas: [linea]
+                };
             }
 
-            // 2. Declaración de variables: Nodo "Declaración Variable" con hijos Tipo e ID
             if (name.startsWith('Declaración Variable') && nodo.children) {
-                let tipoVar = 'Variable';
+                let tipoHeredado = 'Variable';
                 const tipoHijo = nodo.children.find(c => c.name && c.name.startsWith('Tipo: '));
                 if (tipoHijo) {
-                    tipoVar = tipoHijo.name.replace('Tipo: ', '').trim();
+                    tipoHeredado = tipoHijo.name.replace('Tipo: ', '').trim();
                 }
 
                 nodo.children.forEach(c => {
                     if (c.name && c.name.startsWith('ID: ')) {
                         const id = c.name.replace('ID: ', '').trim();
-                        registrarSimbolo(id, tipoVar, c.linea || linea);
+                        const l = c.linea || linea;
+                        if (id) {
+                            if (!tablaHash[id]) {
+                                tablaHash[id] = {
+                                    tipo: tipoHeredado,
+                                    lineas: []
+                                };
+                            }
+                            if (l && !tablaHash[id].lineas.includes(l)) {
+                                tablaHash[id].lineas.push(l);
+                            }
+                        }
                     }
                 });
             }
 
-            // 3. Asignación: Nodo "Asignación (=)" con hijo Variable
+            if (nodo.children && Array.isArray(nodo.children)) {
+                nodo.children.forEach(recolectarDeclaracionesPreorden);
+            }
+        };
+
+        // 2. Registro de líneas de uso bajo la Regla Estricta (Rechazar variables no declaradas)
+        const registrarUsos = (nodo) => {
+            if (!nodo) return;
+
+            const name = nodo.name || '';
+            const linea = nodo.linea || 1;
+
+            const intentarRegistrarUso = (id, l) => {
+                const idLimpio = (id || '').trim();
+                if (!idLimpio || idLimpio === 'true' || idLimpio === 'false') return;
+                // Solo registrar uso si la variable ya fue declarada previamente en la tabla hash
+                if (tablaHash[idLimpio]) {
+                    if (l && !tablaHash[idLimpio].lineas.includes(l)) {
+                        tablaHash[idLimpio].lineas.push(l);
+                    }
+                }
+            };
+
             if (name.startsWith('Asignación') && nodo.children) {
                 const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
                 if (varHijo) {
                     const id = varHijo.name.replace('Variable: ', '').trim();
-                    registrarSimbolo(id, 'Asignación/Uso', varHijo.linea || linea);
+                    intentarRegistrarUso(id, varHijo.linea || linea);
                 }
-            }
-
-            // 4. Incremento / Decremento
-            if ((name.startsWith('Incremento') || name.startsWith('Decremento')) && nodo.children) {
+            } else if ((name.startsWith('Incremento') || name.startsWith('Decremento')) && nodo.children) {
                 const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
                 if (varHijo) {
                     const id = varHijo.name.replace('Variable: ', '').trim();
-                    registrarSimbolo(id, 'Incremento/Uso', varHijo.linea || linea);
+                    intentarRegistrarUso(id, varHijo.linea || linea);
                 }
-            }
-
-            // 5. Entrada cin: Sentencia IN con ID
-            if (name.startsWith('Sentencia IN') && nodo.children) {
+            } else if (name.startsWith('Sentencia IN') && nodo.children) {
                 nodo.children.forEach(c => {
                     if (c.name && c.name.startsWith('ID: ')) {
                         const id = c.name.replace('ID: ', '').trim();
-                        registrarSimbolo(id, 'Entrada (cin)', c.linea || linea);
+                        intentarRegistrarUso(id, c.linea || linea);
                     }
                 });
-            }
-
-            // 6. Referencias a Identificadores en expresiones u otros nodos hoja
-            if (name.startsWith('Identificador: ')) {
+            } else if (name.startsWith('Identificador: ')) {
                 const id = name.replace('Identificador: ', '').trim();
-                registrarSimbolo(id, 'Identificador/Uso', linea);
+                intentarRegistrarUso(id, linea);
             }
 
-            // Visitar hijos del nodo del árbol
             if (nodo.children && Array.isArray(nodo.children)) {
-                nodo.children.forEach(recorrerAST);
+                nodo.children.forEach(registrarUsos);
             }
         };
 
         if (ast) {
-            recorrerAST(ast);
+            recolectarDeclaracionesPreorden(ast);
+            registrarUsos(ast);
         }
 
-        // Si el AST no produjo símbolos o falló sintácticamente, extraer de los tokens del código
-        if (Object.keys(simbolos).length === 0 && typeof Lexer !== 'undefined') {
+        // Si la tabla quedó vacía y se dispone de tokens léxicos (fallback)
+        if (Object.keys(tablaHash).length === 0 && typeof Lexer !== 'undefined') {
             const lex = Lexer.analizar(codigo);
-            (lex.tokens || []).forEach(tok => {
-                if (tok.tipo === 'ID') {
-                    registrarSimbolo(tok.lexema, 'Identificador', tok.linea);
+            const tokens = lex.tokens || [];
+            let i = 0;
+            while (i < tokens.len) {
+                const tok = tokens[i];
+                if (tok.tipo === 'RESERVADA' && ['int', 'float', 'bool', 'real'].includes(tok.lexema)) {
+                    const tipo = tok.lexema;
+                    i++;
+                    while (i < tokens.length) {
+                        const nxt = tokens[i];
+                        if (nxt.tipo === 'ID') {
+                            if (!tablaHash[nxt.lexema]) {
+                                tablaHash[nxt.lexema] = { tipo, lineas: [] };
+                            }
+                            tablaHash[nxt.lexema].lineas.push(nxt.linea);
+                        } else if (nxt.lexema === ';') {
+                            break;
+                        }
+                        i++;
+                    }
                 } else if (tok.tipo === 'RESERVADA' && tok.lexema === 'main') {
-                    registrarSimbolo('main', 'Punto de Entrada', tok.linea);
+                    tablaHash['main'] = { tipo: 'Punto de Entrada', lineas: [tok.linea] };
                 }
-            });
+                i++;
+            }
         }
 
-        // Ordenar alfabéticamente
+        // Formato para la vista del IDE
         const output = [];
-        const sortedKeys = Object.keys(simbolos).sort();
+        const sortedKeys = Object.keys(tablaHash).sort();
         for (const id of sortedKeys) {
+            const lineas = tablaHash[id].lineas.sort((a, b) => a - b);
             output.push({
                 identificador: id,
-                tipo: simbolos[id].tipo,
-                lineas: simbolos[id].lineas.join(', ')
+                tipo: tablaHash[id].tipo,
+                lineas: lineas.join(', ')
             });
         }
 

@@ -76,7 +76,7 @@ const CompilerEngine = {
                 if (wasmModule && typeof wasmModule.analizar_semantico === 'function') {
                     try {
                         const resSem = wasmModule.analizar_semantico(codigoFuente);
-                        return resSem.output;
+                        return resSem;
                     } catch (e) {
                         console.warn("Fallback a Semantico JS:", e);
                     }
@@ -85,7 +85,7 @@ const CompilerEngine = {
                 const parser = new Parser(lexResult.tokens);
                 const astResult = parser.parse();
                 const resSem = SemanticAnalyzer.analizar(codigoFuente, astResult);
-                return resSem.output;
+                return resSem;
             }
 
             case 'simbolos': {
