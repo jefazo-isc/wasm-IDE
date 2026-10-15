@@ -755,21 +755,23 @@ async function compilarFase(fase) {
             const data = res;
             window.lastSintacticoData = data;
 
-            function renderTreeTextual(node) {
+            function renderTreeTextual(node, esRaiz = true) {
                 if (!node) return '';
                 const clickEvent = node.linea ? `onclick="irALinea(${node.linea}); event.stopPropagation();"` : "";
-                const hoverEvent = node.linea ? `onmouseenter="irALinea(${node.linea});"` : "";
+                
                 if (!node.children || node.children.length === 0) {
-                    return `<div style="margin-left: 20px; padding: 2px 0; color: var(--text-secondary); cursor: pointer;" ${clickEvent} ${hoverEvent}><span style="color: var(--accent-primary);">▪</span> ${node.name}</div>`;
+                    return `<li ${clickEvent}><span class="leaf-node">📄 ${node.name}</span></li>`;
                 }
-                const summaryHover = node.linea ? `this.style.background='rgba(255,255,255,0.05)'; irALinea(${node.linea});` : `this.style.background='rgba(255,255,255,0.05)';`;
-                let html = `<details open style="margin-left: 10px; margin-top: 5px;">
-                    <summary style="cursor: pointer; font-weight: bold; color: var(--text-primary); padding: 3px; border-radius: 3px; transition: background 0.2s;" onmouseover="${summaryHover}" onmouseout="this.style.background='transparent'" ${clickEvent}><i data-lucide="folder-tree" style="width:14px; height:14px; margin-right:5px; color:var(--text-muted); display:inline-block; vertical-align:-2px;"></i> ${node.name}</summary>
-                    <div style="border-left: 1px dashed var(--border-color); padding-left: 10px; margin-left: 7px;">`;
+                
+                const atributoAbierto = esRaiz ? 'open' : '';
+                let html = `<li>
+                    <details ${atributoAbierto}>
+                        <summary class="parent-node" ${clickEvent}>📁 ${node.name}</summary>
+                        <ul>`;
                 node.children.forEach(child => {
-                    html += renderTreeTextual(child);
+                    html += renderTreeTextual(child, false);
                 });
-                html += `</div></details>`;
+                html += `</ul></details></li>`;
                 return html;
             }
 
@@ -804,7 +806,7 @@ async function compilarFase(fase) {
             if (arbolParaMostrar && arbolParaMostrar.children && arbolParaMostrar.children.length > 0) {
                 setTimeout(() => drawD3Tree(arbolParaMostrar, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                if (newFc) newFc.innerHTML = renderTreeTextual(arbolParaMostrar);
+                if (newFc) newFc.innerHTML = '<ul class="ast-tree">' + renderTreeTextual(arbolParaMostrar, true) + '</ul>';
 
                 if (window.vistaSintacticaActiva === 'carpetas') {
                     const d3c = document.getElementById('d3_tree_container');
@@ -837,7 +839,7 @@ async function compilarFase(fase) {
             } else if (arbolParaMostrar) {
                 setTimeout(() => drawD3Tree(arbolParaMostrar, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                if (newFc) newFc.innerHTML = renderTreeTextual(arbolParaMostrar);
+                if (newFc) newFc.innerHTML = '<ul class="ast-tree">' + renderTreeTextual(arbolParaMostrar, true) + '</ul>';
             }
 
             const panelErrores = document.getElementById('panel_err_sin');
@@ -1553,6 +1555,7 @@ window.verArbolAnotadoDesdeSemantico = verArbolAnotadoDesdeSemantico;
 window.TabManager = TabManager;
 window.Modals = Modals;
 
+
 // ==========================================================================
 // D3.js TREE VISUALIZATION
 // ==========================================================================
@@ -1585,6 +1588,20 @@ function drawD3Tree(treeData, containerId) {
     root.x0 = height / 2;
     root.y0 = 0;
 
+    // --- Lógica para colapsar todos los nodos excepto la raíz al inicio ---
+    function collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+        }
+    }
+
+    if (root.children) {
+        root.children.forEach(collapse);
+    }
+    // ----------------------------------------------------------------------
+
     let i = 0;
 
     function update(source) {
@@ -1610,6 +1627,7 @@ function drawD3Tree(treeData, containerId) {
                     irALinea(d.data.linea);
                 }
 
+                // Alternar entre expandido y colapsado
                 if (d.children) {
                     d._children = d.children;
                     d.children = null;
@@ -1656,7 +1674,7 @@ function drawD3Tree(treeData, containerId) {
                 return -(textWidth + 20) / 2;
             })
             .style("fill", d => {
-                if (d._children) return "var(--bg-secondary)";
+                if (d._children) return "var(--bg-secondary)"; // Si tiene hijos colapsados
                 const name = (d.data && d.data.name) || '';
                 if (name.includes('[tipo: int]')) return "rgba(59, 130, 246, 0.15)";
                 if (name.includes('[tipo: float]')) return "rgba(16, 185, 129, 0.15)";

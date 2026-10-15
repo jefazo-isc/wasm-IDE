@@ -15,6 +15,7 @@ pub struct SemanticResult {
     pub output: String,
     pub errores: Vec<SemanticError>,
     pub annotated_tree: Option<AstNode>,
+    pub tree: Option<AstNode>, // <-- Agregar para compatibilidad con el JS del frontend
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -52,9 +53,9 @@ impl TipoDato {
 #[derive(Clone, Debug)]
 struct VarDecl {
     tipo: TipoDato,
+    #[allow(dead_code)]
     linea: usize,
 }
-
 pub fn analizar_con_ast(_codigo: &str, ast_root: Option<&AstNode>) -> SemanticResult {
     let mut output = String::from("--- ANÁLISIS SEMÁNTICO (Basado en AST) ---\n\n");
     let mut declaradas: HashMap<String, VarDecl> = HashMap::new();
@@ -498,6 +499,15 @@ pub fn analizar_con_ast(_codigo: &str, ast_root: Option<&AstNode>) -> SemanticRe
             let t_str = name.replacen("Tipo: ", "", 1).trim().to_string();
             annotated_name = format!("{} [tipo base]", name);
             tipo_sintetizado = Some(TipoDato::from_str(&t_str));
+        } else if name.starts_with("Variable: ") || name.starts_with("Destino: ") || name.starts_with("ID: ") {
+            let prefijo = if name.starts_with("Variable:") { "Variable: " } else if name.starts_with("Destino:") { "Destino: " } else { "ID: " };
+            let id = name.replacen(prefijo, "", 1).trim().to_string();
+            if let Some(var_decl) = declaradas.get(&id) {
+                annotated_name = format!("{} [tipo: {}]", name, var_decl.tipo.as_str());
+                tipo_sintetizado = Some(var_decl.tipo.clone());
+            } else if id != "main" {
+                annotated_name = format!("{} [no declarada!]", name);
+            }
         }
 
         let mut annotated_children = Vec::new();
@@ -581,6 +591,7 @@ pub fn analizar_con_ast(_codigo: &str, ast_root: Option<&AstNode>) -> SemanticRe
         success: errores.is_empty(),
         output,
         errores,
-        annotated_tree,
+        annotated_tree: annotated_tree.clone(),
+        tree: annotated_tree,
     }
 }

@@ -351,6 +351,15 @@ const SemanticAnalyzer = {
             } else if (name.startsWith('Tipo: ')) {
                 annotatedName = `${name} [tipo base]`;
                 tipoSintetizado = normalizarTipo(name.replace('Tipo: ', '').trim());
+            } else if (name.startsWith('Variable: ') || name.startsWith('Destino: ') || name.startsWith('ID: ')) {
+                const prefijo = name.startsWith('Variable:') ? 'Variable: ' : name.startsWith('Destino:') ? 'Destino: ' : 'ID: ';
+                const id = name.replace(prefijo, '').trim();
+                if (declaradas[id]) {
+                    annotatedName = `${name} [tipo: ${declaradas[id].tipo}]`;
+                    tipoSintetizado = declaradas[id].tipo;
+                } else if (id !== 'main') {
+                    annotatedName = `${name} [no declarada!]`;
+                }
             }
 
             const annotatedChildren = [];
