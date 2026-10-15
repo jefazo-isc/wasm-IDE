@@ -178,7 +178,7 @@ do
                             ruta: rutaBase === '/' ? '/' + nombreCarpeta : rutaBase + '/' + nombreCarpeta
                         });
                     }
-                } else if (partes.length === 1 && partes[0] !== '') {
+                } else if (partes.length === 1 && partes[0] !== '' && partes[0] !== '.keep') {
                     // Es un archivo directo en este nivel
                     elementos.push({
                         nombre: partes[0],
@@ -257,6 +257,29 @@ do
         };
     },
 
+    crearCarpeta(ruta) {
+        const rutaLimpia = this.normalizarRuta(ruta);
+        // Creamos una marca oculta de carpeta para que persista aunque esté vacía
+        const marcador = rutaLimpia + '/.keep';
+        this.files[marcador] = '';
+        this.persist();
+        return { success: true, ruta: rutaLimpia };
+    },
+
+    borrarDirectorio(ruta) {
+        const rutaLimpia = this.normalizarRuta(ruta);
+        const prefijo = rutaLimpia === '/' ? '/' : rutaLimpia + '/';
+        let eliminados = 0;
+        for (const f in this.files) {
+            if (f === rutaLimpia || f.startsWith(prefijo)) {
+                delete this.files[f];
+                eliminados++;
+            }
+        }
+        this.persist();
+        return { success: true, eliminados };
+    },
+
     borrarArchivo(ruta) {
         const rutaLimpia = this.normalizarRuta(ruta);
         if (this.files.hasOwnProperty(rutaLimpia)) {
@@ -270,6 +293,82 @@ do
     // =========================================================================
     // INTEGRACIÓN CON EL SISTEMA DE ARCHIVOS REAL DEL USUARIO (Nativo / Browser)
     // =========================================================================
+
+    async abrirDirectorioDesdeDisco() {
+        if ('showDirectoryPicker' in window) {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                const total = { count: 0 };
+                const leerRec = async (handle, pathActual) => {
+                    for await (const entry of handle.values()) {
+                        const subPath = pathActual + '/' + entry.name;
+                        if (entry.kind === 'file') {
+                            const file = await entry.getFile();
+                            const contenido = await file.text();
+                            this.guardarArchivo(subPath, contenido);
+                            total.count++;
+                        } else if (entry.kind === 'directory') {
+                            this.crearCarpeta(subPath);
+                            await leerRec(entry, subPath);
+                        }
+                    }
+                };
+                await leerRec(dirHandle, '/' + dirHandle.name);
+                return { success: true, count: total.count, dirName: dirHandle.name };
+            } catch (err) {
+                if (err.name === 'AbortError') return { success: false, cancelado: true };
+                console.warn("showDirectoryPicker falló o no permitido, usando input fallback:", err);
+            }
+        }
+
+        // Fallback clásico con input webkitdirectory
+        return new Promise((resolve) => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.setAttribute('webkitdirectory', '');
+            input.setAttribute('directory', '');
+            input.setAttribute('multiple', '');
+            input.style.display = 'none';
+            document.body.appendChild(input);
+
+            input.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) {
+                    input.remove();
+                    return resolve({ success: false, cancelado: true });
+                }
+                let count = 0;
+                let dirName = '';
+                for (let i = 0; i < files.length; i++) {
+                    const f = files[i];
+                    const relPath = f.webkitRelativePath || f.name;
+                    if (!dirName && relPath.includes('/')) {
+                        dirName = relPath.split('/')[0];
+                    }
+                    try {
+                        const contenido = await f.text();
+                        VirtualFS.guardarArchivo('/' + relPath, contenido);
+                        count++;
+                    } catch (readErr) {
+                        console.warn("No se pudo leer archivo de la carpeta:", relPath, readErr);
+                    }
+                }
+                input.remove();
+                resolve({ success: true, count, dirName: dirName || 'Carpeta' });
+            };
+
+            window.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (input.parentNode && (!input.files || input.files.length === 0)) {
+                        input.remove();
+                        resolve({ success: false, cancelado: true });
+                    }
+                }, 1000);
+            }, { once: true });
+
+            input.click();
+        });
+    },
 
     async abrirArchivoDesdeDisco() {
         if ('showOpenFilePicker' in window) {

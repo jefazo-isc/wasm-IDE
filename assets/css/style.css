@@ -483,7 +483,7 @@ body {
     padding: 0 4px;
 }
 
-.explorer-item.file:hover .btn-delete-file {
+.explorer-item:hover .btn-delete-file {
     opacity: 1;
 }
 

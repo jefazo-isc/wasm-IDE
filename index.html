@@ -14,11 +14,13 @@
             <div class="dropdown">
                 <button class="dropbtn"><i data-lucide="file-box"></i> Archivo</button>
                 <div class="dropdown-content">
-                    <button onclick="nuevoArchivo()"><i data-lucide="file-plus"></i> Nuevo</button>
+                    <button onclick="nuevoArchivo()"><i data-lucide="file-plus"></i> Nuevo Archivo</button>
+                    <button onclick="nuevaCarpeta()"><i data-lucide="folder-plus"></i> Nueva Carpeta</button>
                     <button onclick="guardarArchivo()"><i data-lucide="save"></i> Guardar</button>
                     <button onclick="cerrarArchivo()"><i data-lucide="x-circle"></i> Cerrar pestaña</button>
                     <div class="separator"></div>
-                    <button onclick="abrirArchivo()"><i data-lucide="upload"></i> Subir</button>
+                    <button onclick="abrirArchivo()"><i data-lucide="upload"></i> Subir Archivo</button>
+                    <button onclick="abrirCarpeta()"><i data-lucide="folder-up"></i> Subir Carpeta</button>
                     <button onclick="guardarComoArchivo()"><i data-lucide="download"></i> Descargar</button>
                     <div class="separator"></div>
                     <button onclick="salirIDE()"><i data-lucide="refresh-cw"></i> Reiniciar Workspace</button>
@@ -74,7 +76,14 @@
 
     <div class="main-layout" style="flex-direction: row;">
         <div class="file-explorer" id="file_explorer">
-            <div class="explorer-header">Proyecto (Virtual Workspace)</div>
+            <div class="explorer-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Proyecto</span>
+                <div style="display:flex; gap:4px;">
+                    <button class="up-btn" onclick="nuevoArchivo()" title="Nuevo archivo" style="padding:2px 5px;"><i data-lucide="file-plus" style="width:13px; height:13px;"></i></button>
+                    <button class="up-btn" onclick="nuevaCarpeta()" title="Nueva carpeta" style="padding:2px 5px;"><i data-lucide="folder-plus" style="width:13px; height:13px;"></i></button>
+                    <button class="up-btn" onclick="abrirCarpeta()" title="Subir carpeta desde PC" style="padding:2px 5px;"><i data-lucide="folder-up" style="width:13px; height:13px;"></i></button>
+                </div>
+            </div>
             <div class="explorer-path-bar">
                 <button class="up-btn" onclick="subirDirectorio()" title="Subir nivel"><i data-lucide="arrow-up"></i></button>
                 <input type="text" id="workspace_path" placeholder="Ruta..." onkeypress="if(event.key === 'Enter') cargarExplorador()">
@@ -221,11 +230,11 @@
     <script src="assets/js/compiler/engine.js"></script>
     
     <!-- Sistema de Archivos e IA -->
-    <script src="assets/js/fs/virtual_fs.js"></script>
-    <script src="assets/js/ai/ai_client.js"></script>
+    <script src="assets/js/fs/virtual_fs.js?v=2"></script>
+    <script src="assets/js/ai/ai_client.js?v=2"></script>
     
     <!-- Lógica Principal del Editor y UI -->
-    <script src="assets/js/main.js"></script>
-    <script src="assets/js/ai.js"></script>
+    <script src="assets/js/main.js?v=2"></script>
+    <script src="assets/js/ai.js?v=2"></script>
 </body>
 </html>

@@ -2,28 +2,50 @@
 // IDE INDÓMITO - CLIENT-SIDE & WEB ASSEMBLY CORE ENGINE
 // ==========================================================================
 
-// ==========================================================================
-// CACHÉ DEL DOM (Optimización de rendimiento)
-// ==========================================================================
+function initDOM() {
+    DOM.editor = document.getElementById('editor');
+    DOM.highlighting = document.getElementById('highlighting');
+    DOM.lineNumbers = document.getElementById('line_numbers');
+    DOM.cursorPos = document.getElementById('cursor_pos');
+    DOM.currentFilename = document.getElementById('current_filename');
+    DOM.fileIndicator = document.getElementById('file_indicator');
+    DOM.bracketMatches = document.getElementById('bracket_matches');
+    DOM.statusMsg = document.getElementById('status_msg');
+    DOM.workspacePath = document.getElementById('workspace_path');
+    DOM.explorerContent = document.getElementById('explorer_content');
+    DOM.fileExplorer = document.getElementById('file_explorer');
+    DOM.editorContainer = document.getElementById('editor_container');
+    DOM.rightPanels = document.getElementById('right_panels');
+    DOM.bottomPanels = document.getElementById('bottom_panels');
+    DOM.topLayout = document.querySelector('.top-layout');
+    DOM.resizerV = document.getElementById('resizer_v');
+    DOM.resizerExp = document.getElementById('resizer_explorer');
+    DOM.resizerH = document.getElementById('resizer_h');
+
+    DOM.resizerV?.addEventListener('mousedown', () => enableResize('v', 'col-resize'));
+    DOM.resizerExp?.addEventListener('mousedown', () => enableResize('exp', 'col-resize'));
+    DOM.resizerH?.addEventListener('mousedown', () => enableResize('h', 'row-resize'));
+}
+
 const DOM = {
-    editor: document.getElementById('editor'),
-    highlighting: document.getElementById('highlighting'),
-    lineNumbers: document.getElementById('line_numbers'),
-    cursorPos: document.getElementById('cursor_pos'),
-    currentFilename: document.getElementById('current_filename'),
-    fileIndicator: document.getElementById('file_indicator'),
-    bracketMatches: document.getElementById('bracket_matches'),
-    statusMsg: document.getElementById('status_msg'),
-    workspacePath: document.getElementById('workspace_path'),
-    explorerContent: document.getElementById('explorer_content'),
-    fileExplorer: document.getElementById('file_explorer'),
-    editorContainer: document.getElementById('editor_container'),
-    rightPanels: document.getElementById('right_panels'),
-    bottomPanels: document.getElementById('bottom_panels'),
-    topLayout: document.querySelector('.top-layout'),
-    resizerV: document.getElementById('resizer_v'),
-    resizerExp: document.getElementById('resizer_explorer'),
-    resizerH: document.getElementById('resizer_h'),
+    editor: null,
+    highlighting: null,
+    lineNumbers: null,
+    cursorPos: null,
+    currentFilename: null,
+    fileIndicator: null,
+    bracketMatches: null,
+    statusMsg: null,
+    workspacePath: null,
+    explorerContent: null,
+    fileExplorer: null,
+    editorContainer: null,
+    rightPanels: null,
+    bottomPanels: null,
+    topLayout: null,
+    resizerV: null,
+    resizerExp: null,
+    resizerH: null,
     activeLineIndicator: null
 };
 
@@ -58,10 +80,9 @@ const TabManager = {
 
     /** Activa una pestaña, guardando el estado de la anterior */
     activate(path) {
-        // Guardar estado de la pestaña actual antes de cambiar
         if (activeTabPath) {
             const current = openTabs.find(t => t.path === activeTabPath);
-            if (current) {
+            if (current && DOM.editor) {
                 current.content = DOM.editor.value;
                 current.scrollTop = DOM.editor.scrollTop;
                 current.cursorPos = DOM.editor.selectionStart;
@@ -70,17 +91,18 @@ const TabManager = {
 
         activeTabPath = path;
         const tab = openTabs.find(t => t.path === path);
-        if (tab) {
+        if (tab && DOM.editor) {
             DOM.editor.value = tab.content;
             currentOpenedFileAbsPath = tab.path;
             setFilename(tab.name);
             procesarCambiosPesados();
 
-            // Restaurar posición del cursor y scroll
             requestAnimationFrame(() => {
-                DOM.editor.scrollTop = tab.scrollTop;
-                DOM.editor.setSelectionRange(tab.cursorPos, tab.cursorPos);
-                actualizarCursorRápido();
+                if (DOM.editor) {
+                    DOM.editor.scrollTop = tab.scrollTop;
+                    DOM.editor.setSelectionRange(tab.cursorPos, tab.cursorPos);
+                    actualizarCursorRápido();
+                }
             });
         }
         this.render();
@@ -91,18 +113,15 @@ const TabManager = {
         const idx = openTabs.findIndex(t => t.path === path);
         if (idx === -1) return;
 
-        // Si es la pestaña activa, sincronizar el contenido
-        if (path === activeTabPath) {
+        if (path === activeTabPath && DOM.editor) {
             openTabs[idx].content = DOM.editor.value;
         }
 
-        // Verificar cambios sin guardar contra el VirtualFS
         if (typeof VirtualFS !== 'undefined') {
             const saved = VirtualFS.cargarArchivo(path);
             if (saved.success && saved.contenido !== openTabs[idx].content) {
-                if (!await Modals.confirm('Cerrar pestaña', `¿Cerrar <b>${openTabs[idx].name}</b> sin guardar los cambios?`, 'Cerrar', 'Cancelar')) {
-                    return;
-                }
+                const confirmar = await Modals.confirm('Cerrar pestaña', `¿Cerrar <b>${openTabs[idx].name}</b> sin guardar los cambios?`, 'Cerrar', 'Cancelar');
+                if (!confirmar) return;
             }
         }
 
@@ -110,14 +129,12 @@ const TabManager = {
 
         if (path === activeTabPath) {
             if (openTabs.length > 0) {
-                // Activar la pestaña vecina
                 const newIdx = Math.min(idx, openTabs.length - 1);
                 this.activate(openTabs[newIdx].path);
             } else {
-                // No quedan pestañas
                 activeTabPath = null;
                 currentOpenedFileAbsPath = '';
-                DOM.editor.value = '';
+                if (DOM.editor) DOM.editor.value = '';
                 setFilename('Sin título');
                 limpiarPaneles();
                 procesarCambiosPesados();
@@ -132,7 +149,7 @@ const TabManager = {
     syncActive() {
         if (!activeTabPath) return;
         const tab = openTabs.find(t => t.path === activeTabPath);
-        if (tab) {
+        if (tab && DOM.editor) {
             tab.content = DOM.editor.value;
         }
     },
@@ -171,7 +188,7 @@ const Modals = {
         const overlay = document.createElement('div');
         overlay.id = 'ide_modal_overlay';
         overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; justify-content: center; align-items: center;';
-        
+
         const btnsHtml = buttons.map((b, i) => {
             if (b.primary) {
                 return `<button id="mbtn_${i}" style="padding: 8px 18px; cursor: pointer; background: #1a8cef; color: #fff; border: 1px solid #3aa0f5; border-radius: 5px; margin-left: 10px; font-weight: bold; font-size: 13px; transition: background 0.2s, transform 0.1s;" onmouseover="this.style.background='#3aa0f5'" onmouseout="this.style.background='#1a8cef'">${b.text}</button>`;
@@ -183,18 +200,19 @@ const Modals = {
         const box = document.createElement('div');
         box.style.cssText = 'background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; min-width: 350px; max-width: 500px; box-shadow: 0 5px 15px var(--shadow-color); font-family: var(--font-sans);';
         box.innerHTML = `<h3 style="margin-top: 0; color: var(--text-primary); margin-bottom: 15px;">${titulo}</h3><div style="color: var(--text-primary); margin-bottom: 20px; font-size: 14px; max-height: 60vh; overflow-y: auto;">${htmlContent}</div><div style="display: flex; justify-content: flex-end;">${btnsHtml}</div>`;
-        
+
         overlay.appendChild(box);
         document.body.appendChild(overlay);
 
         buttons.forEach((b, i) => {
-            document.getElementById(`mbtn_${i}`).addEventListener('click', () => {
+            document.getElementById(`mbtn_${i}`)?.addEventListener('click', () => {
                 overlay.style.display = 'none';
                 resolve(b.value);
                 setTimeout(() => overlay.remove(), 50);
             });
         });
     }),
+
     prompt: async (titulo, mensaje, def = '') => {
         const html = `<p style="margin-bottom: 10px;">${mensaje}</p><input type="text" id="modal_input" value="${def}" style="width: 100%; padding: 8px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; outline: none; font-family: var(--font-mono); box-sizing: border-box;">`;
         setTimeout(() => {
@@ -203,23 +221,30 @@ const Modals = {
                 input.focus();
                 const dotIndex = input.value.lastIndexOf('.');
                 dotIndex > 0 ? input.setSelectionRange(0, dotIndex) : input.select();
-                input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mbtn_1').click(); });
+                input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mbtn_1')?.click(); });
             }
         }, 50);
-        return await Modals.show(titulo, html, [{text: 'Cancelar', value: null}, {text: 'Aceptar', value: 'OK', primary: true}]) === 'OK' ? document.getElementById('modal_input').value : null;
+        const res = await Modals.show(titulo, html, [{ text: 'Cancelar', value: null }, { text: 'Aceptar', value: 'OK', primary: true }]);
+        return res === 'OK' ? document.getElementById('modal_input')?.value ?? null : null;
     },
-    confirm: async (tit, msg, btnSi = 'Sí', btnNo = 'No') => await Modals.show(tit, `<p>${msg}</p>`, [{text: btnNo, value: false}, {text: btnSi, value: true, primary: true}]),
-    alert: async (tit, msg) => await Modals.show(tit, `<pre style="white-space: pre-wrap; font-family: var(--font-mono); margin: 0;">${msg}</pre>`, [{text: 'Aceptar', value: true, primary: true}]),
+
+    confirm: async (tit, msg, btnSi = 'Sí', btnNo = 'No') =>
+        await Modals.show(tit, `<p>${msg}</p>`, [{ text: btnNo, value: false }, { text: btnSi, value: true, primary: true }]),
+
+    alert: async (tit, msg) =>
+        await Modals.show(tit, `<pre style="white-space: pre-wrap; font-family: var(--font-mono); margin: 0;">${msg}</pre>`, [{ text: 'Aceptar', value: true, primary: true }]),
+
     promptPassword: async (titulo, mensaje) => {
         const html = `<p style="margin-bottom: 10px;">${mensaje}</p><input type="password" id="modal_input" style="width: 100%; padding: 8px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; outline: none; font-family: var(--font-mono); box-sizing: border-box;">`;
         setTimeout(() => {
             const input = document.getElementById('modal_input');
             if (input) {
                 input.focus();
-                input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mbtn_1').click(); });
+                input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mbtn_1')?.click(); });
             }
         }, 50);
-        return await Modals.show(titulo, html, [{text: 'Cancelar', value: null}, {text: 'Aceptar', value: 'OK', primary: true}]) === 'OK' ? document.getElementById('modal_input').value : null;
+        const res = await Modals.show(titulo, html, [{ text: 'Cancelar', value: null }, { text: 'Aceptar', value: 'OK', primary: true }]);
+        return res === 'OK' ? document.getElementById('modal_input')?.value ?? null : null;
     }
 };
 
@@ -232,28 +257,26 @@ let animFrame = null;
 const enableResize = (type, cursor) => {
     isResizing[type] = true;
     document.body.style.cursor = cursor;
-    DOM.editor.style.pointerEvents = 'none';
+    if (DOM.editor) DOM.editor.style.pointerEvents = 'none';
 };
-
-DOM.resizerV.addEventListener('mousedown', () => enableResize('v', 'col-resize'));
-DOM.resizerExp.addEventListener('mousedown', () => enableResize('exp', 'col-resize'));
-DOM.resizerH.addEventListener('mousedown', () => enableResize('h', 'row-resize'));
 
 document.addEventListener('mousemove', e => {
     if (!isResizing.v && !isResizing.h && !isResizing.exp) return;
     if (animFrame) cancelAnimationFrame(animFrame);
-    
+
     animFrame = requestAnimationFrame(() => {
-        if (isResizing.v) {
-            let w = document.body.clientWidth - e.clientX;
+        if (isResizing.v && DOM.rightPanels) {
+            const w = document.body.clientWidth - e.clientX;
             if (w > 200 && w < window.innerWidth - 200) DOM.rightPanels.style.width = w + 'px';
         }
-        if (isResizing.exp) {
-            let w = e.clientX;
+        if (isResizing.exp && DOM.fileExplorer) {
+            const w = e.clientX;
             if (w > 150 && w < window.innerWidth / 2) DOM.fileExplorer.style.width = w + 'px';
         }
-        if (isResizing.h) {
-            let h = e.clientY - document.querySelector('.main-layout').getBoundingClientRect().top;
+        if (isResizing.h && DOM.topLayout) {
+            const mainLayout = document.querySelector('.main-layout');
+            const topOffset = mainLayout ? mainLayout.getBoundingClientRect().top : 0;
+            const h = e.clientY - topOffset;
             if (h > 100 && h < window.innerHeight - 100) DOM.topLayout.style.flex = `0 0 ${h}px`;
         }
     });
@@ -262,7 +285,7 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('mouseup', () => {
     isResizing = { v: false, exp: false, h: false };
     document.body.style.cursor = 'default';
-    DOM.editor.style.pointerEvents = 'auto';
+    if (DOM.editor) DOM.editor.style.pointerEvents = 'auto';
 });
 window.addEventListener('resize', synchronizeScrollbarOffset);
 
@@ -281,9 +304,7 @@ document.addEventListener('keydown', async (e) => {
     }
 });
 
-// Advertencia nativa al cerrar pestaña o recargar directamente
 window.addEventListener('beforeunload', (e) => {
-    // Si hay contenido en el editor, advertir al usuario
     if (DOM.editor && DOM.editor.value.trim().length > 0) {
         e.preventDefault();
         e.returnValue = '';
@@ -291,36 +312,44 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 function cargarExplorador(rutaSolicitada = null) {
-    const ruta = rutaSolicitada ?? DOM.workspacePath.value.trim() ?? '/';
-    
+    const ruta = rutaSolicitada ?? DOM.workspacePath?.value.trim() ?? '/';
+
     if (typeof VirtualFS === 'undefined') return;
     const res = VirtualFS.listarDirectorio(ruta);
 
     if (res.success) {
-        DOM.workspacePath.value = res.ruta_actual;
-        DOM.explorerContent.innerHTML = res.elementos.length ? res.elementos.map(el => {
-            const rEsc = el.ruta.replace(/'/g, "\\'");
-            const mName = el.nombre;
-            
-            if (el.es_directorio) {
-                return `<div class="explorer-item folder" onclick="cargarExplorador('${rEsc}')"><i data-lucide="folder" style="width:14px; height:14px; margin-right:5px; color:var(--text-muted);"></i>${mName}</div>`;
-            } else {
-                return `<div class="explorer-item file" onclick="abrirDesdeExplorador('${rEsc}', '${mName}')">
-                            <span style="display:flex; align-items:center;"><i data-lucide="file-code-2" style="width:14px; height:14px; margin-right:5px; color:var(--text-muted);"></i><span class="file-name">${mName}</span></span>
-                            <button class="btn-delete-file" onclick="borrarArchivo(event, '${rEsc}', '${mName}')" title="Borrar"><i data-lucide="trash-2"></i></button>
-                        </div>`;
-            }
-        }).join('') : '<div style="padding: 10px; color: var(--text-muted); font-style: italic;">Carpeta vacía</div>';
-        
+        if (DOM.workspacePath) DOM.workspacePath.value = res.ruta_actual;
+        if (DOM.explorerContent) {
+            DOM.explorerContent.innerHTML = res.elementos.length ? res.elementos.map(el => {
+                const rEsc = el.ruta.replace(/'/g, "\\'");
+                const mName = el.nombre;
+
+                if (el.es_directorio) {
+                    return `<div class="explorer-item folder" onclick="cargarExplorador('${rEsc}')">
+                                <span style="display:flex; align-items:center; flex:1; overflow:hidden; text-overflow:ellipsis;">
+                                    <i data-lucide="folder" style="width:14px; height:14px; margin-right:5px; color:var(--text-muted); flex-shrink:0;"></i>
+                                    <span class="folder-name">${mName}</span>
+                                </span>
+                                <button class="btn-delete-file" onclick="borrarCarpeta(event, '${rEsc}', '${mName}')" title="Borrar carpeta"><i data-lucide="trash-2"></i></button>
+                            </div>`;
+                } else {
+                    return `<div class="explorer-item file" onclick="abrirDesdeExplorador('${rEsc}', '${mName}')">
+                                <span style="display:flex; align-items:center;"><i data-lucide="file-code-2" style="width:14px; height:14px; margin-right:5px; color:var(--text-muted);"></i><span class="file-name">${mName}</span></span>
+                                <button class="btn-delete-file" onclick="borrarArchivo(event, '${rEsc}', '${mName}')" title="Borrar"><i data-lucide="trash-2"></i></button>
+                            </div>`;
+                }
+            }).join('') : '<div style="padding: 10px; color: var(--text-muted); font-style: italic;">Carpeta vacía</div>';
+        }
+
         setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
     }
 }
 
 function subirDirectorio() {
-    const rutaActual = DOM.workspacePath.value.trim() || '/';
+    const rutaActual = DOM.workspacePath?.value.trim() || '/';
     if (rutaActual === '/') return;
-    
-    let partes = rutaActual.split('/').filter(Boolean);
+
+    const partes = rutaActual.split('/').filter(Boolean);
     partes.pop();
     const nuevaRuta = partes.length === 0 ? '/' : '/' + partes.join('/');
     cargarExplorador(nuevaRuta);
@@ -337,7 +366,7 @@ function abrirDesdeExplorador(rutaAbsoluta, nombre) {
     }
 }
 
-const togglePanel = (el, resizer) => { el.classList.toggle('panel-hidden'); resizer.classList.toggle('panel-hidden'); };
+const togglePanel = (el, resizer) => { el?.classList.toggle('panel-hidden'); resizer?.classList.toggle('panel-hidden'); };
 function toggleExplorer() { togglePanel(DOM.fileExplorer, DOM.resizerExp); }
 function toggleRightPanel() { togglePanel(DOM.rightPanels, DOM.resizerV); }
 function toggleBottomPanel() { togglePanel(DOM.bottomPanels, DOM.resizerH); }
@@ -363,8 +392,8 @@ function applySyntaxHighlighting(text) {
 }
 
 function setFilename(filename) {
-    DOM.currentFilename.value = filename;
-    DOM.fileIndicator.textContent = 'Archivo: ' + filename;
+    if (DOM.currentFilename) DOM.currentFilename.value = filename;
+    if (DOM.fileIndicator) DOM.fileIndicator.textContent = 'Archivo: ' + filename;
     setExtension(filename);
 }
 
@@ -386,7 +415,7 @@ function getLineAndCol(val, pos) {
 }
 
 function updateActiveLine() {
-    if (!DOM.activeLineIndicator) return;
+    if (!DOM.activeLineIndicator || !DOM.editor) return;
     const pos = DOM.editor.selectionStart;
     const val = DOM.editor.value;
     let currentLine = 1;
@@ -399,6 +428,7 @@ function updateActiveLine() {
 }
 
 function seleccionarLinea(linea) {
+    if (!DOM.editor) return;
     const val = DOM.editor.value;
     let currentLine = 1;
     let posInicio = 0;
@@ -420,9 +450,14 @@ function seleccionarLinea(linea) {
 }
 
 function syncScroll() {
-    DOM.highlighting.scrollTop = DOM.editor.scrollTop;
-    DOM.highlighting.scrollLeft = DOM.editor.scrollLeft;
-    DOM.lineNumbers.scrollTop = DOM.editor.scrollTop;
+    if (!DOM.editor) return;
+    if (DOM.highlighting) {
+        DOM.highlighting.scrollTop = DOM.editor.scrollTop;
+        DOM.highlighting.scrollLeft = DOM.editor.scrollLeft;
+    }
+    if (DOM.lineNumbers) {
+        DOM.lineNumbers.scrollTop = DOM.editor.scrollTop;
+    }
     updateActiveLine();
     highlightMatchingBrackets();
 }
@@ -432,13 +467,16 @@ function handleInput(limpiarErrores = true) {
     if (limpiarErrores) window.sintacticoErrores = [];
     actualizarContadorLineas();
     actualizarCursorRápido();
-    
+
+    if (!DOM.editor || !DOM.highlighting) return;
     const text = DOM.editor.value;
     if (text.length > 5000) {
         DOM.highlighting.textContent = text + '\n';
         clearTimeout(highlightTimeout);
         highlightTimeout = setTimeout(() => {
-            DOM.highlighting.innerHTML = applySyntaxHighlighting(DOM.editor.value) + '\n';
+            if (DOM.highlighting && DOM.editor) {
+                DOM.highlighting.innerHTML = applySyntaxHighlighting(DOM.editor.value) + '\n';
+            }
         }, 50);
     } else {
         let errorHtml = '';
@@ -455,17 +493,18 @@ function handleInput(limpiarErrores = true) {
         }
         DOM.highlighting.innerHTML = applySyntaxHighlighting(text) + '\n' + errorHtml;
     }
-    
+
     syncScroll();
 }
 
 function actualizarContadorLineas() {
+    if (!DOM.editor || !DOM.lineNumbers) return;
     const val = DOM.editor.value;
     let lines = 1;
     for (let i = 0; i < val.length; i++) {
         if (val[i] === '\n') lines++;
     }
-    
+
     if (lines !== currentLineCount) {
         currentLineCount = lines;
         let html = '';
@@ -480,33 +519,34 @@ function actualizarContadorLineas() {
 function procesarCambiosPesados() { currentLineCount = -1; handleInput(); }
 
 function actualizarCursorRápido() {
+    if (!DOM.editor || !DOM.cursorPos) return;
     const pos = getLineAndCol(DOM.editor.value, DOM.editor.selectionStart);
     requestAnimationFrame(() => {
-        DOM.cursorPos.textContent = `Ln ${pos.line}, Col ${pos.col}`;
+        if (DOM.cursorPos) DOM.cursorPos.textContent = `Ln ${pos.line}, Col ${pos.col}`;
         updateActiveLine();
         highlightMatchingBrackets();
     });
 }
 
 function highlightMatchingBrackets() {
-    if (!DOM.bracketMatches) return;
+    if (!DOM.bracketMatches || !DOM.editor) return;
     const rawText = DOM.editor.value;
     const pos = DOM.editor.selectionStart;
     DOM.bracketMatches.innerHTML = '';
-    
+
     const pairs = { '{': '}', '}': '{', '(': ')', ')': '(', '[': ']', ']': '[', '<': '>', '>': '<' };
     const openBrackets = ['{', '(', '[', '<'];
-    
+
     let text = "";
     let inString = false;
     let stringChar = '';
     let inLineComment = false;
     let inMultiComment = false;
-    
+
     for (let i = 0; i < rawText.length; i++) {
         let char = rawText[i];
         let next = rawText[i + 1] || '';
-        
+
         if (inLineComment) {
             if (char === '\n') { inLineComment = false; text += char; }
             else { text += ' '; }
@@ -523,14 +563,14 @@ function highlightMatchingBrackets() {
             else { text += char === '\n' ? '\n' : ' '; }
             continue;
         }
-        
+
         if (char === '/' && next === '/') { inLineComment = true; text += '  '; i++; continue; }
         if (char === '/' && next === '*') { inMultiComment = true; text += '  '; i++; continue; }
         if (char === '"' || char === "'") { inString = true; stringChar = char; text += ' '; continue; }
-        
+
         text += char;
     }
-    
+
     let activeChar = '', activePos = -1;
     if (pos < text.length && pairs[text[pos]]) {
         activeChar = text[pos];
@@ -539,14 +579,14 @@ function highlightMatchingBrackets() {
         activeChar = text[pos - 1];
         activePos = pos - 1;
     }
-    
+
     if (activePos === -1) return;
-    
+
     const isForward = openBrackets.includes(activeChar);
     const targetChar = pairs[activeChar];
     let matchPos = -1;
     let depth = 0;
-    
+
     if (isForward) {
         for (let i = activePos + 1; i < text.length; i++) {
             if (text[i] === activeChar) depth++;
@@ -564,7 +604,7 @@ function highlightMatchingBrackets() {
             }
         }
     }
-    
+
     if (matchPos !== -1) {
         const buildSpan = (index) => {
             const loc = getLineAndCol(rawText, index);
@@ -580,14 +620,25 @@ function highlightMatchingBrackets() {
     }
 }
 
-function synchronizeScrollbarOffset() { DOM.lineNumbers.style.paddingBottom = `${10 + DOM.editor.offsetHeight - DOM.editor.clientHeight}px`; }
+function synchronizeScrollbarOffset() {
+    if (DOM.lineNumbers && DOM.editor) {
+        DOM.lineNumbers.style.paddingBottom = `${10 + DOM.editor.offsetHeight - DOM.editor.clientHeight}px`;
+    }
+}
 
 function limpiarPaneles() {
-    ['lexico','sintactico','semantico','intermedio','simbolos','ejecucion'].forEach(id => { const p = document.getElementById('panel_'+id); if(p) p.textContent = "Esperando..."; });
-    ['lex','sin','sem'].forEach(id => { const p = document.getElementById('panel_err_'+id); if(p) p.textContent = "Sin errores."; });
+    ['lexico', 'sintactico', 'semantico', 'intermedio', 'simbolos', 'ejecucion'].forEach(id => {
+        const p = document.getElementById('panel_' + id);
+        if (p) p.textContent = "Esperando...";
+    });
+    ['lex', 'sin', 'sem'].forEach(id => {
+        const p = document.getElementById('panel_err_' + id);
+        if (p) p.textContent = "Sin errores.";
+    });
 }
 
 function irALinea(linea) {
+    if (!DOM.editor) return;
     const val = DOM.editor.value;
     let currentLine = 1;
     let pos = 0;
@@ -598,23 +649,25 @@ function irALinea(linea) {
             pos = i + 1;
         }
     }
-    
+
     DOM.editor.focus();
     DOM.editor.setSelectionRange(pos, pos);
     DOM.editor.scrollTop = (linea - 1) * 21 - (DOM.editor.clientHeight / 2) + 30;
-    
-    const prevShadow = DOM.editorContainer.style.boxShadow;
-    DOM.editorContainer.style.boxShadow = "inset 0 0 15px var(--accent-primary)";
-    setTimeout(() => DOM.editorContainer.style.boxShadow = prevShadow, 300);
+
+    if (DOM.editorContainer) {
+        const prevShadow = DOM.editorContainer.style.boxShadow;
+        DOM.editorContainer.style.boxShadow = "inset 0 0 15px var(--accent-primary)";
+        setTimeout(() => DOM.editorContainer.style.boxShadow = prevShadow, 300);
+    }
 }
 
 // ==========================================================================
 // COMPILADOR Y GENERACIÓN DE RESULTADOS (CLIENT-SIDE)
 // ==========================================================================
 function getLexicalClass(tipo) {
-    if(tipo === 'EOF') return 'badge-default';
-    if(tipo.includes('ERR')) return 'badge-error';
-    switch(tipo) {
+    if (tipo === 'EOF') return 'badge-default';
+    if (tipo.includes('ERR')) return 'badge-error';
+    switch (tipo) {
         case 'RESERVADA': return 'badge-keyword';
         case 'ID': return 'badge-id';
         case 'NUM_REAL':
@@ -634,10 +687,10 @@ function getLexicalClass(tipo) {
 async function compilarFase(fase) {
     document.querySelectorAll('.right-content').forEach(el => el.classList.add('oculto'));
     document.querySelectorAll('.right-panels .tab').forEach(el => el.classList.remove('active'));
-    
+
     const panelActivo = document.getElementById('panel_' + fase);
     const tabActivo = document.querySelector(`.right-panels .tab[onclick*="${fase}"]`);
-    
+
     if (panelActivo) panelActivo.classList.remove('oculto');
     if (tabActivo) tabActivo.classList.add('active');
 
@@ -647,13 +700,12 @@ async function compilarFase(fase) {
             return;
         }
 
-        const codigoFuente = DOM.editor.value;
+        const codigoFuente = DOM.editor ? DOM.editor.value : '';
         const res = await CompilerEngine.compilar(fase, codigoFuente);
-        
+
         if (fase === 'lexico') {
             const data = res;
-            
-            // RENDER DE LA TABLA LÉXICA
+
             let tablaHTML = `
                 <div class="panel-header-sticky">
                     <div style="font-size: 11px; color: var(--text-muted);">Clic en una fila para ir al código</div>
@@ -666,7 +718,7 @@ async function compilarFase(fase) {
                         </thead>
                         <tbody>
             `;
-            
+
             data.tokens.forEach(tok => {
                 const cssClass = getLexicalClass(tok.tipo);
                 const safeLexema = tok.lexema.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -679,11 +731,10 @@ async function compilarFase(fase) {
                     </tr>
                 `;
             });
-            
-            tablaHTML += `</tbody></table></div>`;
-            panelActivo.innerHTML = tablaHTML;
 
-            // RENDER DEL PANEL DE ERRORES LÉXICOS
+            tablaHTML += `</tbody></table></div>`;
+            if (panelActivo) panelActivo.innerHTML = tablaHTML;
+
             const panelErrores = document.getElementById('panel_err_lex');
             if (panelErrores) {
                 if (data.errores.length === 0) {
@@ -693,7 +744,7 @@ async function compilarFase(fase) {
                         const safeLex = err.lexema.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                         return `<div class="interactive-log-line error-log" onclick="irALinea(${err.linea})">Ln ${err.linea} Col ${err.col} | ${err.tipo} | ${err.msg}: <b>${safeLex}</b></div>`;
                     }).join('');
-                    
+
                     document.querySelectorAll('.bottom-panels .tab').forEach(el => el.classList.remove('active'));
                     document.querySelectorAll('.bottom-content').forEach(el => el.classList.add('oculto'));
                     panelErrores.classList.remove('oculto');
@@ -703,7 +754,7 @@ async function compilarFase(fase) {
         } else if (fase === 'sintactico') {
             const data = res;
             window.lastSintacticoData = data;
-            
+
             function renderTreeTextual(node) {
                 if (!node) return '';
                 const clickEvent = node.linea ? `onclick="irALinea(${node.linea}); event.stopPropagation();"` : "";
@@ -721,7 +772,7 @@ async function compilarFase(fase) {
                 html += `</div></details>`;
                 return html;
             }
-            
+
             let html = `
                 <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-size: 11px; color: var(--text-muted);" id="sintactico_hint">Arrastra • Rueda para Zoom • Clic para colapsar</div>
@@ -735,22 +786,26 @@ async function compilarFase(fase) {
                 <div id="d3_tree_container" style="width: 100%; height: calc(100% - 50px); overflow: hidden; background: var(--bg-primary);"></div>
                 <div id="folder_tree_container" style="width: 100%; height: calc(100% - 50px); overflow: auto; padding: 15px; font-family: var(--font-mono); font-size: 14px; display: none;"></div>
             `;
-            
-            panelActivo.innerHTML = html;
-            
+
+            if (panelActivo) panelActivo.innerHTML = html;
+
             if (data.tree && data.tree.children && data.tree.children.length > 0) {
                 setTimeout(() => drawD3Tree(data.tree, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                newFc.innerHTML = renderTreeTextual(data.tree);
-                
+                if (newFc) newFc.innerHTML = renderTreeTextual(data.tree);
+
                 if (window.vistaSintacticaActiva === 'carpetas') {
-                    document.getElementById('d3_tree_container').style.display = 'none';
-                    document.getElementById('folder_tree_container').style.display = 'block';
-                    document.getElementById('sintactico_hint').textContent = 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
+                    const d3c = document.getElementById('d3_tree_container');
+                    const fc = document.getElementById('folder_tree_container');
+                    const hint = document.getElementById('sintactico_hint');
+                    if (d3c) d3c.style.display = 'none';
+                    if (fc) fc.style.display = 'block';
+                    if (hint) hint.textContent = 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
                 }
             } else if (data.errores && data.errores.length > 0) {
                 const d3c = document.getElementById('d3_tree_container');
                 const fc = document.getElementById('folder_tree_container');
+                const hint = document.getElementById('sintactico_hint');
                 if (d3c) d3c.style.display = 'none';
                 if (fc) {
                     fc.style.display = 'block';
@@ -760,18 +815,18 @@ async function compilarFase(fase) {
                             <div style="font-size: 16px; font-weight: bold; color: var(--text-primary);">No se pudo generar el árbol sintáctico</div>
                             <div style="font-size: 12px; max-width: 400px;">El análisis encontró errores que impiden construir el árbol. Corrige los errores e intenta de nuevo.</div>
                             <div style="text-align: left; width: 100%; max-width: 500px; margin-top: 10px;">
-                                ${data.errores.map(err => `<div class="interactive-log-line error-log" onclick="irALinea(${err.linea})" style="margin-bottom: 4px; padding: 6px 10px; border-radius: 4px; background: rgba(255,80,80,0.08); border-left: 3px solid #ff6b6b; cursor: pointer; font-family: var(--font-mono); font-size: 12px;"><strong>Ln ${err.linea}</strong> | ${err.msg}</div>`).join('')}
+                                ${data.errores.map(err => `<div class="interactive-log-line error-log" onclick="irALinea(${err.linea})" style="margin-bottom: 4px; padding: 6px 10px; border-radius: 4px; background: rgba(255,80,80,0.08); border-left: 3px solid #ff6b6b; cursor: pointer; font-family: var(--font-mono); font-size: 12px;"><strong>Ln ${err.linea}</strong> \vert{}${err.msg}</div>`).join('')}
                             </div>
                         </div>
                     `;
                 }
-                document.getElementById('sintactico_hint').textContent = 'Errores de análisis detectados';
+                if (hint) hint.textContent = 'Errores de análisis detectados';
             } else if (data.tree) {
                 setTimeout(() => drawD3Tree(data.tree, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                newFc.innerHTML = renderTreeTextual(data.tree);
+                if (newFc) newFc.innerHTML = renderTreeTextual(data.tree);
             }
-            
+
             const panelErrores = document.getElementById('panel_err_sin');
             if (panelErrores) {
                 if (data.errores.length === 0) {
@@ -781,9 +836,9 @@ async function compilarFase(fase) {
                     panelErrores.innerHTML = data.errores.map(err => {
                         return `<div class="interactive-log-line error-log" onclick="irALinea(${err.linea})">Ln ${err.linea} | ${err.msg}</div>`;
                     }).join('');
-                    
+
                     handleInput(false);
-                    
+
                     document.querySelectorAll('.bottom-panels .tab').forEach(el => el.classList.remove('active'));
                     document.querySelectorAll('.bottom-content').forEach(el => el.classList.add('oculto'));
                     panelErrores.classList.remove('oculto');
@@ -794,7 +849,7 @@ async function compilarFase(fase) {
             const lineas = res.split('\n').filter(l => l.trim());
             const errores = lineas.filter(l => l.startsWith('Error Semántico') || l.includes('Error'));
             const info = lineas.filter(l => !l.startsWith('Error Semántico') && !l.includes('Error'));
-            
+
             let html = `
                 <div class="panel-header-sticky">
                     <div style="font-size: 11px; color: var(--text-muted);">${info.length} resultado(s) de análisis</div>
@@ -820,9 +875,8 @@ async function compilarFase(fase) {
             });
 
             html += '</div>';
-            panelActivo.innerHTML = html;
-            
-            // Actualizar panel inferior de errores semánticos
+            if (panelActivo) panelActivo.innerHTML = html;
+
             const panelErrores = document.getElementById('panel_err_sem');
             if (panelErrores) {
                 if (errores.length > 0) {
@@ -864,7 +918,7 @@ async function compilarFase(fase) {
                 });
             }
             html += `</tbody></table></div>`;
-            panelActivo.innerHTML = html;
+            if (panelActivo) panelActivo.innerHTML = html;
         } else if (fase === 'intermedio') {
             window.lastIntermedioRaw = res;
             const lineas = res.split('\n');
@@ -873,7 +927,6 @@ async function compilarFase(fase) {
             let totalInstrucciones = 0;
 
             const formatInstruction = (inst) => {
-                // Tokenizador seguro para evitar colisiones con tags HTML
                 const tokenRegex = /(ret|READ|WRITE)\b|(t\d+)\b|([0-9]+(?:\.[0-9]+)?)\b|([\$a-zA-Z_][a-zA-Z0-9_]*)|([=+\-*\/^%])|(\S+)/g;
                 return inst.replace(tokenRegex, (match, kw, temp, num, id, op, other) => {
                     if (kw) return `<span class="tac-keyword">${kw}</span>`;
@@ -884,6 +937,34 @@ async function compilarFase(fase) {
                     const safe = (other || match).replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     return safe;
                 });
+            };
+
+            const renderTacBlock = (bloque) => {
+                const header = bloque.numLinea
+                    ? `<div class="tac-block-header" onclick="irALinea(${bloque.numLinea})" title="Clic para ir a la línea ${bloque.numLinea} en el editor">
+                        <span class="tac-line-badge"><i data-lucide="corner-down-right" style="width:12px; height:12px;"></i> Línea ${bloque.numLinea}</span>
+                        <span style="font-size:10px;"><i data-lucide="external-link" style="width:11px; height:11px; vertical-align:-1px;"></i> Ir al código</span>
+                       </div>`
+                    : `<div class="tac-block-header"><span>Instrucciones</span></div>`;
+
+                let rows = '';
+                bloque.instrucciones.forEach((inst, idx) => {
+                    rows += `
+                        <div class="tac-inst-row">
+                            <span class="tac-inst-num">${idx + 1}.</span>
+                            <span class="tac-inst-content">${formatInstruction(inst)}</span>
+                        </div>
+                    `;
+                });
+
+                return `
+                    <div class="tac-block">
+                        ${header}
+                        <div class="tac-block-body">
+                            ${rows}
+                        </div>
+                    </div>
+                `;
             };
 
             lineas.forEach(linea => {
@@ -915,34 +996,6 @@ async function compilarFase(fase) {
                 bloquesHTML += renderTacBlock(bloqueActual);
             }
 
-            function renderTacBlock(bloque) {
-                const header = bloque.numLinea 
-                    ? `<div class="tac-block-header" onclick="irALinea(${bloque.numLinea})" title="Clic para ir a la línea ${bloque.numLinea} en el editor">
-                        <span class="tac-line-badge"><i data-lucide="corner-down-right" style="width:12px; height:12px;"></i> Línea ${bloque.numLinea}</span>
-                        <span style="font-size:10px;"><i data-lucide="external-link" style="width:11px; height:11px; vertical-align:-1px;"></i> Ir al código</span>
-                       </div>`
-                    : `<div class="tac-block-header"><span>Instrucciones</span></div>`;
-
-                let rows = '';
-                bloque.instrucciones.forEach((inst, idx) => {
-                    rows += `
-                        <div class="tac-inst-row">
-                            <span class="tac-inst-num">${idx + 1}.</span>
-                            <span class="tac-inst-content">${formatInstruction(inst)}</span>
-                        </div>
-                    `;
-                });
-
-                return `
-                    <div class="tac-block">
-                        ${header}
-                        <div class="tac-block-body">
-                            ${rows}
-                        </div>
-                    </div>
-                `;
-            }
-
             let html = `
                 <div class="tac-container">
                     <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
@@ -961,9 +1014,8 @@ async function compilarFase(fase) {
                     </div>
                 </div>
             `;
-            panelActivo.innerHTML = html;
+            if (panelActivo) panelActivo.innerHTML = html;
         } else if (panelActivo) {
-            // Panel genérico (Ejecución / Resultados)
             const lineas = res.split('\n');
             let html = `
                 <div class="panel-header-sticky">
@@ -991,22 +1043,25 @@ async function compilarFase(fase) {
         }
 
         setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
-    } catch (e) { 
+    } catch (e) {
         console.error("Error en compilación:", e);
-        if (panelActivo) panelActivo.innerHTML = `<div class="panel-header-sticky"><div style="font-size: 11px; color: #ff6b6b;">Error en compilación</div></div><div class="interactive-log-line error-log" style="margin-top:8px;">${e.message}</div>`; 
+        if (panelActivo) panelActivo.innerHTML = `<div class="panel-header-sticky"><div style="font-size: 11px; color: #ff6b6b;">Error en compilación</div></div><div class="interactive-log-line error-log" style="margin-top:8px;">${e.message}</div>`;
     }
 }
 
 function showRightPanel(e, id) {
     document.querySelectorAll('.right-content').forEach(el => el.classList.add('oculto'));
     document.querySelectorAll('.right-panels .tab').forEach(el => el.classList.remove('active'));
-    document.getElementById('panel_' + id).classList.remove('oculto');
+    const panel = document.getElementById('panel_' + id);
+    if (panel) panel.classList.remove('oculto');
     e.target.classList.add('active');
     compilarFase(id);
 }
 
 function toggleAmpliarSintactico(btn) {
     const panels = document.getElementById('right_panels');
+    if (!panels) return;
+
     if (panels.dataset.ampliado === "true") {
         panels.style.position = '';
         panels.style.top = '';
@@ -1018,7 +1073,8 @@ function toggleAmpliarSintactico(btn) {
         panels.dataset.ampliado = "false";
         btn.innerHTML = '<i data-lucide="maximize" style="width:14px; height:14px;"></i> Ampliar';
         setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
-        document.querySelector('.main-layout').style.overflow = '';
+        const mainLayout = document.querySelector('.main-layout');
+        if (mainLayout) mainLayout.style.overflow = '';
     } else {
         panels.dataset.prevWidth = panels.style.width || window.getComputedStyle(panels).width;
         panels.style.position = 'fixed';
@@ -1032,7 +1088,8 @@ function toggleAmpliarSintactico(btn) {
         panels.dataset.ampliado = "true";
         btn.innerHTML = '<i data-lucide="minimize" style="width:14px; height:14px;"></i> Restaurar';
         setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 10);
-        document.querySelector('.main-layout').style.overflow = 'hidden';
+        const mainLayout = document.querySelector('.main-layout');
+        if (mainLayout) mainLayout.style.overflow = 'hidden';
     }
 }
 
@@ -1042,16 +1099,16 @@ function toggleVistaSintactica() {
     const fCont = document.getElementById('folder_tree_container');
     const hint = document.getElementById('sintactico_hint');
     if (!d3Cont || !fCont) return;
-    
+
     if (window.vistaSintacticaActiva === 'grafico') {
         d3Cont.style.display = 'none';
         fCont.style.display = 'block';
-        hint.textContent = 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
+        if (hint) hint.textContent = 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
         window.vistaSintacticaActiva = 'carpetas';
     } else {
         d3Cont.style.display = 'block';
         fCont.style.display = 'none';
-        hint.textContent = 'Arrastra para mover • Rueda para Zoom • Clic para colapsar';
+        if (hint) hint.textContent = 'Arrastra para mover • Rueda para Zoom • Clic para colapsar';
         window.vistaSintacticaActiva = 'grafico';
     }
 }
@@ -1089,9 +1146,10 @@ function copiarCodigoIntermedio() {
 function showBottomPanel(e, id) {
     document.querySelectorAll('.bottom-content').forEach(el => el.classList.add('oculto'));
     document.querySelectorAll('.bottom-panels .tab').forEach(el => el.classList.remove('active'));
-    document.getElementById('panel_' + id).classList.remove('oculto');
+    const panel = document.getElementById('panel_' + id);
+    if (panel) panel.classList.remove('oculto');
     e.target.classList.add('active');
-    
+
     if (id === 'err_lex') compilarFase('lexico');
     else if (id === 'err_sin') compilarFase('sintactico');
     else if (id === 'err_sem') compilarFase('semantico');
@@ -1101,10 +1159,11 @@ function showBottomPanel(e, id) {
 // GESTIÓN DE ARCHIVOS Y WORKSPACE
 // ==========================================================================
 async function nuevoArchivo() {
+    const rutaBase = DOM.workspacePath?.value.trim() || '/';
     let error = '';
     let defName = 'codigo.' + currentExt;
     while (true) {
-        const msg = (error ? `<div style="color:#ff6666; margin-bottom:8px; font-size:13px;">⚠ ${error}</div>` : '') + 'Nombre del archivo:';
+        const msg = (error ? `<div style="color:#ff6666; margin-bottom:8px; font-size:13px;">⚠ ${error}</div>` : '') + `Nombre del archivo en <b>${rutaBase}</b>:`;
         if (error) {
             setTimeout(() => {
                 const modal = document.querySelector('#ide_modal_overlay > div');
@@ -1117,13 +1176,16 @@ async function nuevoArchivo() {
         const nombre = await Modals.prompt("Nuevo Archivo", msg, defName);
         if (!nombre) return;
         defName = nombre;
-        const path = '/' + nombre;
+        const path = (rutaBase === '/' ? '/' + nombre : rutaBase + '/' + nombre).replace(/\/+/g, '/');
         if (typeof VirtualFS !== 'undefined' && VirtualFS.cargarArchivo(path).success) {
             error = `El archivo <b>${nombre}</b> ya existe.`;
             continue;
         }
-        guardarArchivoEnWorkspace(nombre, false);
+        if (typeof VirtualFS !== 'undefined') {
+            VirtualFS.guardarArchivo(path, '');
+        }
         TabManager.open(path, nombre, '');
+        cargarExplorador(rutaBase);
         return;
     }
 }
@@ -1137,29 +1199,30 @@ async function cerrarArchivo() {
 async function guardarArchivoEnWorkspace(nombreArchivo, esGuardarComo = false) {
     if (typeof VirtualFS === 'undefined') return;
     const ruta = currentOpenedFileAbsPath || ('/' + nombreArchivo);
-    const res = await VirtualFS.guardarArchivoFisico(ruta, DOM.editor.value);
-    
+    const contenido = DOM.editor ? DOM.editor.value : '';
+    const res = await VirtualFS.guardarArchivoFisico(ruta, contenido);
+
     let icon = '<i data-lucide="check" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i>';
     let text = res.savedToDisk ? 'Guardado en disco' : 'Guardado en Workspace';
     if (esGuardarComo && !res.savedToDisk) text = 'Guardado en Workspace';
-    
+
     mostrarNotificacion(`${icon} ${text}`);
     cargarExplorador();
 }
 
 async function guardarArchivo() {
     TabManager.syncActive();
-    const name = DOM.currentFilename.value;
+    const name = DOM.currentFilename ? DOM.currentFilename.value : '';
     (name === 'Sin título' || !name) ? guardarComoArchivo() : guardarArchivoEnWorkspace(name, false);
 }
 
 async function guardarComoArchivo() {
     TabManager.syncActive();
-    const nombreActual = DOM.currentFilename.value.replace(/^\//, '') || 'archivo.txt';
+    const nombreActual = (DOM.currentFilename ? DOM.currentFilename.value.replace(/^\//, '') : '') || 'archivo.txt';
+    const contenido = DOM.editor ? DOM.editor.value : '';
 
-    // Si el navegador soporta el diálogo nativo del SO, usarlo directamente
     if (typeof VirtualFS !== 'undefined' && 'showSaveFilePicker' in window) {
-        const res = await VirtualFS.descargarArchivoLocal(nombreActual, DOM.editor.value);
+        const res = await VirtualFS.descargarArchivoLocal(nombreActual, contenido);
         if (res && res.success && res.isNative) {
             setFilename(res.handleName);
             currentOpenedFileAbsPath = res.ruta;
@@ -1169,14 +1232,13 @@ async function guardarComoArchivo() {
         return;
     }
 
-    // Fallback para navegadores sin File System Access API
     let nombre = await Modals.prompt("Descargar", "Nombre del archivo:", nombreActual);
     if (!nombre) return;
     setFilename(nombre);
     currentOpenedFileAbsPath = '/' + nombre;
     await guardarArchivoEnWorkspace(nombre, true);
     if (typeof VirtualFS !== 'undefined') {
-        VirtualFS.descargarArchivoLocal(nombre, DOM.editor.value);
+        VirtualFS.descargarArchivoLocal(nombre, contenido);
     }
 }
 
@@ -1198,7 +1260,7 @@ async function borrarArchivo(event, rutaAbsoluta, nombre) {
     if (typeof VirtualFS !== 'undefined') {
         VirtualFS.borrarArchivo(rutaAbsoluta);
         mostrarNotificacion('<i data-lucide="trash" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Archivo eliminado');
-        // Cerrar la pestaña del archivo eliminado sin pedir confirmación
+
         const tabIdx = openTabs.findIndex(t => t.path === rutaAbsoluta);
         if (tabIdx !== -1) {
             openTabs.splice(tabIdx, 1);
@@ -1209,7 +1271,7 @@ async function borrarArchivo(event, rutaAbsoluta, nombre) {
                 } else {
                     activeTabPath = null;
                     currentOpenedFileAbsPath = '';
-                    DOM.editor.value = '';
+                    if (DOM.editor) DOM.editor.value = '';
                     setFilename('Sin título');
                     limpiarPaneles();
                     procesarCambiosPesados();
@@ -1223,11 +1285,58 @@ async function borrarArchivo(event, rutaAbsoluta, nombre) {
     }
 }
 
+async function nuevaCarpeta() {
+    const rutaBase = DOM.workspacePath?.value.trim() || '/';
+    const nombre = await Modals.prompt("Nueva Carpeta", `Crear subcarpeta en <b>${rutaBase}</b>:`, "mi_carpeta");
+    if (!nombre) return;
+
+    const rutaFinal = (rutaBase === '/' ? '/' + nombre : rutaBase + '/' + nombre).replace(/\/+/g, '/');
+    if (typeof VirtualFS !== 'undefined') {
+        VirtualFS.crearCarpeta(rutaFinal);
+        mostrarNotificacion('<i data-lucide="folder-plus" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Carpeta creada');
+        cargarExplorador(rutaBase);
+    }
+}
+
+async function abrirCarpeta() {
+    if (typeof VirtualFS !== 'undefined') {
+        const res = await VirtualFS.abrirDirectorioDesdeDisco();
+        if (res && res.success) {
+            cargarExplorador('/' + (res.dirName || ''));
+            mostrarNotificacion(`<i data-lucide="folder-check" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Carpeta '${res.dirName}' cargada (${res.count} archivos)`);
+        }
+    }
+}
+
+async function borrarCarpeta(event, rutaAbsoluta, nombre) {
+    if (event) event.stopPropagation();
+    if (!await Modals.confirm('Eliminar Carpeta', `¿Eliminar carpeta <b>${nombre}</b> y todo su contenido?<br><br>No se puede deshacer.`, 'Eliminar', 'Cancelar')) return;
+
+    if (typeof VirtualFS !== 'undefined') {
+        VirtualFS.borrarDirectorio(rutaAbsoluta);
+        mostrarNotificacion('<i data-lucide="trash" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Carpeta eliminada');
+
+        // Cerrar tabs que pertenecían a esa carpeta
+        const prefijo = rutaAbsoluta.endsWith('/') ? rutaAbsoluta : rutaAbsoluta + '/';
+        const indicesParaCerrar = [];
+        openTabs.forEach((t, i) => {
+            if (t.path === rutaAbsoluta || t.path.startsWith(prefijo)) {
+                indicesParaCerrar.push(t.path);
+            }
+        });
+        indicesParaCerrar.forEach(p => TabManager.close(p));
+
+        const rutaBase = DOM.workspacePath?.value.trim() || '/';
+        cargarExplorador(rutaBase);
+    }
+}
+
 // ==========================================================================
 // UTILS
 // ==========================================================================
 function mostrarNotificacion(msg, esError = false) {
     const el = document.getElementById('status_msg');
+    if (!el) return;
     el.innerHTML = (esError ? '<i data-lucide="alert-circle" style="width:14px; height:14px; vertical-align:-2px;"></i> ' : '') + msg + ' - ' + new Date().toLocaleTimeString();
     el.style.color = esError ? '#ffaaaa' : 'rgba(255, 255, 255, 0.9)';
     if (window.lucide) setTimeout(() => lucide.createIcons(), 10);
@@ -1255,10 +1364,8 @@ async function salirIDE() {
 
 async function cerrarVentana() {
     if (await Modals.confirm("Salir del IDE", "¿Estás seguro que deseas salir y cerrar el entorno?")) {
-        // Intenta cerrar la pestaña
         window.close();
-        
-        // Si el navegador bloquea el cierre, muestra una pantalla negra de "Cerrado"
+
         document.body.innerHTML = `
             <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background-color:var(--bg-primary, #1e1e1e); color:var(--text-primary, #ffffff); font-family:sans-serif;">
                 <h1 style="font-size: 40px; margin-bottom: 10px;">IDE Cerrado</h1>
@@ -1268,7 +1375,6 @@ async function cerrarVentana() {
     }
 }
 
-// Sonido de notificación de actividad terminada
 function playNotificationSound() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1277,18 +1383,17 @@ function playNotificationSound() {
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'triangle';
-        
-        // Melodía alegre (arpegio de éxito)
+
         osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
         osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
         osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
         osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3); // C6
-        
+
         gain.gain.setValueAtTime(0, audioCtx.currentTime);
         gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime + 0.4);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
-        
+
         osc.start(audioCtx.currentTime);
         osc.stop(audioCtx.currentTime + 0.7);
     } catch (e) {
@@ -1316,29 +1421,30 @@ function toggleRGB() {
 function abrirAutomata() { window.open('automata.html', '_blank', 'width=1100,height=800'); }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initDOM();
     const theme = localStorage.getItem('ide_theme');
     if (theme === 'light') document.body.classList.add('light-theme');
     else if (theme === 'rgb') document.body.classList.add('rgb-theme');
-    
+
     DOM.activeLineIndicator = document.createElement('div');
     DOM.activeLineIndicator.id = 'active_line_indicator';
-    document.querySelector('.code-area').prepend(DOM.activeLineIndicator);
-    
-    DOM.lineNumbers.addEventListener('mousedown', (e) => {
+    const codeArea = document.querySelector('.code-area');
+    if (codeArea) codeArea.prepend(DOM.activeLineIndicator);
+
+    DOM.lineNumbers?.addEventListener('mousedown', (e) => {
         const rect = DOM.lineNumbers.getBoundingClientRect();
         const clickY = e.clientY - rect.top + DOM.lineNumbers.scrollTop - 10;
         if (clickY < 0) return;
         const clickedLine = Math.floor(clickY / 21) + 1;
         seleccionarLinea(clickedLine);
     });
-    
+
     document.addEventListener('selectionchange', () => {
         if (document.activeElement === DOM.editor) {
             actualizarCursorRápido();
         }
     });
-    
-    // Cargar archivo inicial del VirtualFS si existe
+
     if (typeof VirtualFS !== 'undefined') {
         const initFile = VirtualFS.cargarArchivo('/testLexico.txt');
         if (initFile.success) {
@@ -1349,11 +1455,36 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         TabManager.render();
     }
-    
+
     cargarExplorador();
     compilarFase('sintactico');
     if (window.lucide) lucide.createIcons();
 });
+
+// Exposición global para que los onclick de HTML siempre los encuentren
+window.nuevoArchivo = nuevoArchivo;
+window.nuevaCarpeta = nuevaCarpeta;
+window.abrirCarpeta = abrirCarpeta;
+window.borrarCarpeta = borrarCarpeta;
+window.abrirArchivo = abrirArchivo;
+window.guardarArchivo = guardarArchivo;
+window.guardarComoArchivo = guardarComoArchivo;
+window.cerrarArchivo = cerrarArchivo;
+window.borrarArchivo = borrarArchivo;
+window.cargarExplorador = cargarExplorador;
+window.subirDirectorio = subirDirectorio;
+window.abrirDesdeExplorador = abrirDesdeExplorador;
+window.toggleExplorer = toggleExplorer;
+window.toggleRightPanel = toggleRightPanel;
+window.toggleBottomPanel = toggleBottomPanel;
+window.toggleTheme = toggleTheme;
+window.toggleRGB = toggleRGB;
+window.abrirAutomata = abrirAutomata;
+window.verLogErrores = verLogErrores;
+window.salirIDE = salirIDE;
+window.compilarFase = compilarFase;
+window.TabManager = TabManager;
+window.Modals = Modals;
 
 // ==========================================================================
 // D3.js TREE VISUALIZATION
@@ -1361,12 +1492,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function drawD3Tree(treeData, containerId) {
     const container = document.querySelector(containerId);
     if (!container || typeof d3 === 'undefined') return;
-    
+
     container.innerHTML = '';
-    
+
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
-    const margin = {top: 20, right: 120, bottom: 20, left: 120};
+    const margin = { top: 20, right: 120, bottom: 20, left: 120 };
 
     const zoom = d3.zoom().scaleExtent([0.1, 3]).on("zoom", (event) => {
         g.attr("transform", event.transform);
@@ -1388,7 +1519,7 @@ function drawD3Tree(treeData, containerId) {
     root.y0 = 0;
 
     let i = 0;
-    
+
     function update(source) {
         const treeDataResult = tree(root);
         const nodes = treeDataResult.descendants();
@@ -1411,7 +1542,7 @@ function drawD3Tree(treeData, containerId) {
                 if (d.data.linea) {
                     irALinea(d.data.linea);
                 }
-                
+
                 if (d.children) {
                     d._children = d.children;
                     d.children = null;
@@ -1447,12 +1578,12 @@ function drawD3Tree(treeData, containerId) {
             .attr("transform", d => `translate(${d.y},${d.x})`);
 
         nodeUpdate.select('rect')
-            .attr('width', function(d) {
+            .attr('width', function (d) {
                 const textNode = this.parentNode.querySelector('text');
                 const textWidth = textNode ? textNode.getBBox().width : 80;
                 return textWidth + 20;
             })
-            .attr('x', function(d) {
+            .attr('x', function (d) {
                 const textNode = this.parentNode.querySelector('text');
                 const textWidth = textNode ? textNode.getBBox().width : 80;
                 return -(textWidth + 20) / 2;
@@ -1475,7 +1606,7 @@ function drawD3Tree(treeData, containerId) {
             .style("stroke", "var(--border-color)")
             .style("stroke-width", "2px")
             .attr('d', d => {
-                const o = {x: source.x0, y: source.y0};
+                const o = { x: source.x0, y: source.y0 };
                 return diagonal(o, o);
             });
 
@@ -1485,7 +1616,7 @@ function drawD3Tree(treeData, containerId) {
 
         const linkExit = link.exit().transition().duration(500)
             .attr('d', d => {
-                const o = {x: source.x, y: source.y};
+                const o = { x: source.x, y: source.y };
                 return diagonal(o, o);
             })
             .remove();
@@ -1504,7 +1635,7 @@ function drawD3Tree(treeData, containerId) {
     }
 
     update(root);
-    
+
     const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(0.85);
     svg.call(zoom.transform, initialTransform);
 }
