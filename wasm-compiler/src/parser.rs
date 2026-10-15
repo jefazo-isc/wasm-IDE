@@ -293,7 +293,6 @@ impl Parser {
         if self.current().lexema != "while" {
             return false;
         }
-        // Si hay un 'until' pendiente para este do, entonces 'while' es un bucle anidado, no el terminador
         let mut pos_aux = self.pos;
         let mut found_until = false;
         let mut brace_depth = 0;
@@ -419,15 +418,41 @@ impl Parser {
 
     fn asignacion(&mut self) -> AstNode {
         let t = self.current();
-        self.advance();
+        self.advance(); // Consumir ID
 
-        if self.current().lexema == "++" || self.current().lexema == "--" {
-            let op = self.current().lexema.clone();
+        let mut is_inc = false;
+        let mut is_dec = false;
+
+        // Validar ++ / -- ya sea en un token o en dos separados por culpa del Lexer
+        if self.current().lexema == "++" {
+            is_inc = true;
             self.advance();
+        } else if self.current().lexema == "--" {
+            is_dec = true;
+            self.advance();
+        } else if self.current().lexema == "+" {
+            self.advance();
+            if self.current().lexema == "+" {
+                is_inc = true;
+                self.advance();
+            } else {
+                self.pos -= 1; // Backtrack si solo era un + (ej. asignacion incompleta)
+            }
+        } else if self.current().lexema == "-" {
+            self.advance();
+            if self.current().lexema == "-" {
+                is_dec = true;
+                self.advance();
+            } else {
+                self.pos -= 1; // Backtrack
+            }
+        }
+
+        if is_inc || is_dec {
             if !self.match_lexema(";") {
                 self.synchronize();
             }
-            let name = if op == "++" {
+            let name = if is_inc {
                 "Incremento (++)".to_string()
             } else {
                 "Decremento (--)".to_string()
@@ -511,14 +536,13 @@ impl Parser {
         let t = self.current();
         self.advance();
         let exp = self.expresion();
-        let mut cuerpo_then = Vec::new();
-        let mut cuerpo_else = Vec::new();
 
         if !self.match_lexema("then") {
             self.panic_mode = false;
         }
 
-        cuerpo_then = self.lista_sentencias(&["else", "end"]);
+        let cuerpo_then = self.lista_sentencias(&["else", "end"]);
+        let mut cuerpo_else = Vec::new();
 
         if self.current().lexema == "else" {
             self.advance();
@@ -561,16 +585,14 @@ impl Parser {
         self.advance();
         let exp = self.expresion();
 
-        let mut cuerpo = Vec::new();
         let mut has_brace = false;
-
-        if self.current().lexema == "{" {
+        let cuerpo = if self.current().lexema == "{" {
             self.advance();
             has_brace = true;
-            cuerpo = self.lista_sentencias(&[]);
+            self.lista_sentencias(&[])
         } else {
-            cuerpo = self.lista_sentencias(&["end"]);
-        }
+            self.lista_sentencias(&["end"])
+        };
 
         if has_brace {
             if !self.match_lexema("}") {
@@ -606,16 +628,12 @@ impl Parser {
         let t = self.current();
         self.advance();
 
-        let mut cuerpo = Vec::new();
         let mut has_brace = false;
-
         if self.current().lexema == "{" {
             self.advance();
             has_brace = true;
-            cuerpo = self.lista_sentencias_do_cuerpo();
-        } else {
-            cuerpo = self.lista_sentencias_do_cuerpo();
         }
+        let cuerpo = self.lista_sentencias_do_cuerpo();
 
         if has_brace {
             if self.current().lexema == "}" {
@@ -915,6 +933,36 @@ impl Parser {
 
     fn unaria(&mut self) -> Option<AstNode> {
         let t = self.current();
+
+        let mut is_double_plus = false;
+        let mut is_double_minus = false;
+
+        if t.lexema == "+" && self.pos + 1 < self.total && self.tokens[self.pos + 1].lexema == "+" {
+            is_double_plus = true;
+        } else if t.lexema == "-" && self.pos + 1 < self.total && self.tokens[self.pos + 1].lexema == "-" {
+            is_double_minus = true;
+        }
+
+        if is_double_plus {
+            self.advance(); 
+            self.advance(); 
+            let nodo = self.unaria();
+            return Some(AstNode {
+                name: "Op Unaria (++)".to_string(),
+                linea: t.linea,
+                children: Some(if let Some(n) = nodo { vec![n] } else { vec![] }),
+            });
+        } else if is_double_minus {
+            self.advance(); 
+            self.advance(); 
+            let nodo = self.unaria();
+            return Some(AstNode {
+                name: "Op Unaria (--)".to_string(),
+                linea: t.linea,
+                children: Some(if let Some(n) = nodo { vec![n] } else { vec![] }),
+            });
+        }
+
         if ["!", "-", "++", "--"].contains(&t.lexema.as_str()) {
             self.advance();
             let nodo = self.unaria();

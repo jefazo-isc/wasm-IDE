@@ -1854,3 +1854,45 @@ body.light-theme .exec-error {
 body.light-theme .exec-error:hover {
     background: rgba(211, 47, 47, 0.12);
 }
+
+/* ==========================================================================
+   ESTILOS PARA EL ÁRBOL AST COLAPSABLE
+   ========================================================================== */
+.ast-tree, .ast-tree ul {
+    list-style-type: none;
+    padding-left: 1.5rem;
+    margin: 0;
+    font-family: var(--font-mono);
+}
+
+.ast-tree ul {
+    border-left: 1px dashed var(--border-color);
+    margin-left: 0.5rem;
+}
+
+.ast-tree li {
+    margin: 4px 0;
+}
+
+.ast-tree summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--accent-primary);
+    outline: none;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.ast-tree summary:hover {
+    color: var(--accent-hover);
+}
+
+.ast-tree .leaf-node {
+    color: var(--text-secondary);
+    padding-left: 1.2rem;
+    cursor: pointer;
+}
+
+.ast-tree .leaf-node:hover {
+    color: var(--text-primary);
+}
