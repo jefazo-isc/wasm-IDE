@@ -6,7 +6,7 @@ const Lexer = {
     patrones: [
         { tipo: 'COM_MULTI',     regex: /^\/\*[\s\S]*?\*\// },
         { tipo: 'COM_SIMPLE',    regex: /^\/\/[^\n]*/ },
-        { tipo: 'RESERVADA',     regex: /^(if|else|end|do|while|switch|case|int|float|bool|main|cin|cout|real|then|until)\b/ },
+        { tipo: 'RESERVADA',     regex: /^(if|else|end|do|while|switch|case|int|float|bool|main|cin|cout|real|then|until|true|false)\b/ },
         { tipo: 'ID',            regex: /^[a-zA-Z_][a-zA-Z0-9_]*/ },
         { tipo: 'NUM_REAL',      regex: /^[0-9]+\.[0-9]+/ },
         { tipo: 'ERR_NUM',       regex: /^[0-9]+\.(?![0-9])/ },

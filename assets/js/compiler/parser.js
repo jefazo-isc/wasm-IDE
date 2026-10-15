@@ -698,12 +698,12 @@ class Parser {
         } else if (t.tipo === 'NUM_ENTERO' || t.tipo === 'NUM_REAL') {
             this.advance();
             return { name: 'Número: ' + t.lexema, linea: t.linea };
-        } else if (t.tipo === 'ID') {
-            this.advance();
-            return { name: 'Identificador: ' + t.lexema, linea: t.linea };
         } else if (['true', 'false'].includes(t.lexema)) {
             this.advance();
             return { name: 'Booleano: ' + t.lexema, linea: t.linea };
+        } else if (t.tipo === 'ID') {
+            this.advance();
+            return { name: 'Identificador: ' + t.lexema, linea: t.linea };
         }
 
         this.error(`Se esperaba un componente válido. Se encontró '${t.lexema}'`);

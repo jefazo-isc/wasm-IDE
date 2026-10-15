@@ -69,6 +69,12 @@ mod tests {
         for sym in &sym_res.simbolos {
             println!("  Sym: {} ({}) lines: {}", sym.identificador, sym.tipo, sym.lineas);
         }
+
+        let inter_res = intermediate::generar(code);
+        println!("Intermediate Code Output:\n{}", inter_res);
+        assert!(inter_res.contains("if_false"), "Should generate control flow jumps");
+        assert!(inter_res.contains("goto"), "Should generate goto jumps");
+        assert!(inter_res.contains("t1"), "Should generate temporary variables");
     }
 
     #[test]

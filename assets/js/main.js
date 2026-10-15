@@ -777,6 +777,7 @@ async function compilarFase(fase) {
                 <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-size: 11px; color: var(--text-muted);" id="sintactico_hint">Arrastra • Rueda para Zoom • Clic para colapsar</div>
                     <div style="display: flex; gap: 5px;">
+                        <button class="btn-reload" id="btn_toggle_anotado" onclick="toggleModoArbolAnotado()" title="Alternar Árbol Estándar vs Anotado Semántico" style="padding: 3px 8px; display:flex; align-items:center; gap:3px; background: rgba(59, 130, 246, 0.2); border-color: var(--accent-primary);"><i data-lucide="tag" style="width:14px; height:14px; color:var(--accent-primary);"></i> <span id="lbl_arbol_anotado">${window.modoArbolAnotado ? 'Árbol Normal' : 'Árbol Anotado'}</span></button>
                         <button class="btn-reload" onclick="exportarSintactico()" title="Exportar JSON" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="download" style="width:14px; height:14px;"></i> Exportar</button>
                         <button class="btn-reload" onclick="toggleVistaSintactica()" title="Alternar Vista" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="eye" style="width:14px; height:14px;"></i> Vista</button>
                         <button class="btn-reload" onclick="toggleAmpliarSintactico(this)" title="Ampliar panel" style="padding: 3px 8px; display:flex; align-items:center; gap:3px;"><i data-lucide="maximize" style="width:14px; height:14px;"></i> Ampliar</button>
@@ -789,18 +790,30 @@ async function compilarFase(fase) {
 
             if (panelActivo) panelActivo.innerHTML = html;
 
-            if (data.tree && data.tree.children && data.tree.children.length > 0) {
-                setTimeout(() => drawD3Tree(data.tree, "#d3_tree_container"), 50);
+            const arbolParaMostrar = (window.modoArbolAnotado && window.lastAnnotatedTree) ? window.lastAnnotatedTree : data.tree;
+
+            const hint = document.getElementById('sintactico_hint');
+            if (hint) {
+                if (window.modoArbolAnotado) {
+                    hint.innerHTML = '<span style="color:var(--accent-success); font-weight:600;">Árbol Anotado (Tipos y Atributos Semánticos)</span> • Clic para colapsar';
+                } else {
+                    hint.textContent = 'Árbol Sintáctico Estándar • Arrastra • Zoom • Clic para colapsar';
+                }
+            }
+
+            if (arbolParaMostrar && arbolParaMostrar.children && arbolParaMostrar.children.length > 0) {
+                setTimeout(() => drawD3Tree(arbolParaMostrar, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                if (newFc) newFc.innerHTML = renderTreeTextual(data.tree);
+                if (newFc) newFc.innerHTML = renderTreeTextual(arbolParaMostrar);
 
                 if (window.vistaSintacticaActiva === 'carpetas') {
                     const d3c = document.getElementById('d3_tree_container');
                     const fc = document.getElementById('folder_tree_container');
-                    const hint = document.getElementById('sintactico_hint');
                     if (d3c) d3c.style.display = 'none';
                     if (fc) fc.style.display = 'block';
-                    if (hint) hint.textContent = 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
+                    if (hint) hint.textContent = window.modoArbolAnotado 
+                        ? 'Árbol Anotado (Carpetas anidadas - Clic para colapsar o ir a línea)'
+                        : 'Carpetas anidadas (Haz clic para colapsar o ir a línea)';
                 }
             } else if (data.errores && data.errores.length > 0) {
                 const d3c = document.getElementById('d3_tree_container');
@@ -821,10 +834,10 @@ async function compilarFase(fase) {
                     `;
                 }
                 if (hint) hint.textContent = 'Errores de análisis detectados';
-            } else if (data.tree) {
-                setTimeout(() => drawD3Tree(data.tree, "#d3_tree_container"), 50);
+            } else if (arbolParaMostrar) {
+                setTimeout(() => drawD3Tree(arbolParaMostrar, "#d3_tree_container"), 50);
                 const newFc = document.getElementById('folder_tree_container');
-                if (newFc) newFc.innerHTML = renderTreeTextual(data.tree);
+                if (newFc) newFc.innerHTML = renderTreeTextual(arbolParaMostrar);
             }
 
             const panelErrores = document.getElementById('panel_err_sin');
@@ -846,14 +859,22 @@ async function compilarFase(fase) {
                 }
             }
         } else if (fase === 'semantico') {
-            const lineas = res.split('\n').filter(l => l.trim());
+            const rawOutput = (res && typeof res.output === 'string') ? res.output : (typeof res === 'string' ? res : '');
+            if (res && res.annotated_tree) {
+                window.lastAnnotatedTree = res.annotated_tree;
+            }
+
+            const lineas = rawOutput.split('\n').filter(l => l.trim());
             const errores = lineas.filter(l => l.startsWith('Error Semántico') || l.includes('Error'));
             const info = lineas.filter(l => !l.startsWith('Error Semántico') && !l.includes('Error'));
 
             let html = `
-                <div class="panel-header-sticky">
+                <div class="panel-header-sticky" style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="font-size: 11px; color: var(--text-muted);">${info.length} resultado(s) de análisis</div>
-                    <button class="btn-reload" onclick="compilarFase('semantico')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn-reload" onclick="verArbolAnotadoDesdeSemantico()" title="Ver Árbol Anotado en el visualizador gráfico" style="padding: 3px 8px; display:flex; align-items:center; gap:3px; background: rgba(59, 130, 246, 0.2); border-color: var(--accent-primary);"><i data-lucide="git-branch" style="width:14px; height:14px; color:var(--accent-primary);"></i> Ver Árbol Anotado</button>
+                        <button class="btn-reload" onclick="compilarFase('semantico')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                    </div>
                 </div>
                 <div class="semantic-output">
             `;
@@ -867,7 +888,7 @@ async function compilarFase(fase) {
                 const ln = matchLn ? matchLn[1] : null;
                 const clickAttr = ln ? `onclick="irALinea(${ln})" style="cursor:pointer;"` : '';
 
-                if (l.includes('Tabla de Símbolos') || l.includes('===')) {
+                if (l.includes('Tabla de Símbolos') || l.includes('===') || l.includes('---')) {
                     html += `<div class="semantic-section-title">${l}</div>`;
                 } else {
                     html += `<div class="semantic-info-line" ${clickAttr}>${l}</div>`;
@@ -1113,17 +1134,61 @@ function toggleVistaSintactica() {
     }
 }
 
+window.modoArbolAnotado = false;
+window.lastAnnotatedTree = null;
+
+async function toggleModoArbolAnotado() {
+    window.modoArbolAnotado = !window.modoArbolAnotado;
+    const btn = document.getElementById('btn_toggle_anotado');
+    const lbl = document.getElementById('lbl_arbol_anotado');
+    if (window.modoArbolAnotado) {
+        const codigoFuente = DOM.editor ? DOM.editor.value : '';
+        const resSem = await CompilerEngine.compilar('semantico', codigoFuente);
+        if (resSem && resSem.annotated_tree) {
+            window.lastAnnotatedTree = resSem.annotated_tree;
+        }
+        if (lbl) lbl.textContent = 'Árbol Normal';
+        if (btn) btn.style.background = 'rgba(16, 185, 129, 0.25)';
+        mostrarNotificacion('<i data-lucide="tag" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Mostrando Árbol Anotado Semántico');
+    } else {
+        if (lbl) lbl.textContent = 'Árbol Anotado';
+        if (btn) btn.style.background = 'rgba(59, 130, 246, 0.2)';
+        mostrarNotificacion('Mostrando Árbol Sintáctico Estándar');
+    }
+    compilarFase('sintactico');
+}
+
+async function verArbolAnotadoDesdeSemantico() {
+    window.modoArbolAnotado = true;
+    const codigoFuente = DOM.editor ? DOM.editor.value : '';
+    const resSem = await CompilerEngine.compilar('semantico', codigoFuente);
+    if (resSem && resSem.annotated_tree) {
+        window.lastAnnotatedTree = resSem.annotated_tree;
+    }
+    const tabSintactico = document.querySelector('.right-panels .tab[onclick*="sintactico"]');
+    if (tabSintactico) {
+        showRightPanel({ target: tabSintactico }, 'sintactico');
+    } else {
+        compilarFase('sintactico');
+    }
+    mostrarNotificacion('<i data-lucide="tag" style="width:14px; height:14px; display:inline-block; vertical-align:-2px; margin-right:4px;"></i> Visualizando Árbol Anotado');
+}
+
 function exportarSintactico() {
-    if (!window.lastSintacticoData || !window.lastSintacticoData.tree) {
-        mostrarNotificacion("No hay árbol sintáctico para exportar", true);
+    const arbolExportar = (window.modoArbolAnotado && window.lastAnnotatedTree) 
+        ? window.lastAnnotatedTree 
+        : (window.lastSintacticoData && window.lastSintacticoData.tree);
+
+    if (!arbolExportar) {
+        mostrarNotificacion("No hay árbol para exportar", true);
         return;
     }
-    const dataStr = JSON.stringify(window.lastSintacticoData.tree, null, 2);
+    const dataStr = JSON.stringify(arbolExportar, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "arbol_sintactico.json";
+    a.download = window.modoArbolAnotado ? "arbol_anotado_semantico.json" : "arbol_sintactico.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1483,6 +1548,8 @@ window.abrirAutomata = abrirAutomata;
 window.verLogErrores = verLogErrores;
 window.salirIDE = salirIDE;
 window.compilarFase = compilarFase;
+window.toggleModoArbolAnotado = toggleModoArbolAnotado;
+window.verArbolAnotadoDesdeSemantico = verArbolAnotadoDesdeSemantico;
 window.TabManager = TabManager;
 window.Modals = Modals;
 
@@ -1588,8 +1655,28 @@ function drawD3Tree(treeData, containerId) {
                 const textWidth = textNode ? textNode.getBBox().width : 80;
                 return -(textWidth + 20) / 2;
             })
-            .style("fill", d => d._children ? "var(--bg-secondary)" : "var(--bg-tertiary)")
-            .style("stroke", d => d._children ? "var(--text-primary)" : "var(--accent-primary)");
+            .style("fill", d => {
+                if (d._children) return "var(--bg-secondary)";
+                const name = (d.data && d.data.name) || '';
+                if (name.includes('[tipo: int]')) return "rgba(59, 130, 246, 0.15)";
+                if (name.includes('[tipo: float]')) return "rgba(16, 185, 129, 0.15)";
+                if (name.includes('[tipo: bool]')) return "rgba(245, 158, 11, 0.15)";
+                if (name.includes('[asigna a:')) return "rgba(139, 92, 246, 0.15)";
+                if (name.includes('[tipo base]')) return "rgba(6, 182, 212, 0.15)";
+                if (name.includes('[no declarada!]')) return "rgba(239, 68, 68, 0.2)";
+                return "var(--bg-tertiary)";
+            })
+            .style("stroke", d => {
+                if (d._children) return "var(--text-primary)";
+                const name = (d.data && d.data.name) || '';
+                if (name.includes('[tipo: int]')) return "#3b82f6";
+                if (name.includes('[tipo: float]')) return "#10b981";
+                if (name.includes('[tipo: bool]')) return "#f59e0b";
+                if (name.includes('[asigna a:')) return "#8b5cf6";
+                if (name.includes('[tipo base]')) return "#06b6d4";
+                if (name.includes('[no declarada!]')) return "#ef4444";
+                return "var(--accent-primary)";
+            });
 
         const nodeExit = node.exit().transition().duration(500)
             .attr("transform", d => `translate(${source.y},${source.x})`)
