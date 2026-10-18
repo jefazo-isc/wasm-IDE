@@ -1,0 +1,203 @@
+/* ==========================================================================
+   ESTILOS PARA EL ÁRBOL AST COLAPSABLE CON ANIMACIONES
+   ========================================================================== */
+.ast-tree, .ast-tree ul {
+    list-style-type: none;
+    padding-left: 1.4rem;
+    margin: 0;
+    font-family: var(--font-mono);
+}
+
+.ast-tree ul {
+    border-left: 1.5px dashed rgba(255, 255, 255, 0.15);
+    margin-left: 0.5rem;
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.light-theme .ast-tree ul {
+    border-left: 1.5px dashed rgba(0, 0, 0, 0.15);
+}
+
+.ast-tree li {
+    margin: 3px 0;
+    position: relative;
+}
+
+.ast-tree details {
+    transition: margin 0.2s ease;
+}
+
+.ast-tree details > ul {
+    animation: astSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top left;
+}
+
+@keyframes astSlideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px) scaleY(0.97);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+    }
+}
+
+.ast-tree summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent-primary);
+    outline: none;
+    user-select: none;
+    padding: 3px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.ast-tree summary:hover {
+    color: var(--accent-hover);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+}
+
+body.light-theme .ast-tree summary:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.ast-tree summary::-webkit-details-marker {
+    display: none;
+}
+
+.ast-tree summary {
+    list-style: none;
+}
+
+.ast-tree summary .tree-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    font-size: 10px;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.ast-tree summary:hover .tree-arrow {
+    color: var(--text-primary);
+}
+
+.ast-tree details[open] > summary .tree-arrow {
+    transform: rotate(90deg);
+}
+
+.ast-tree summary .folder-icon {
+    display: inline-block;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ast-tree details[open] > summary .folder-icon {
+    transform: rotate(8deg) scale(1.06);
+}
+
+.ast-tree .leaf-node {
+    color: var(--text-secondary);
+    padding: 3px 6px 3px 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.ast-tree .leaf-node:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateX(2px);
+}
+
+body.light-theme .ast-tree .leaf-node:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* Efecto de sombra parpadeante pura sin fondo azul */
+.ast-tree .node-active-line {
+    background: transparent !important;
+    border: 1px solid rgba(0, 150, 255, 0.35);
+    border-radius: 4px;
+    color: var(--text-primary) !important;
+    animation: astPulseGlow 1.8s infinite ease-in-out;
+}
+
+@keyframes astPulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(0, 150, 255, 0.3), inset 0 0 4px rgba(0, 150, 255, 0.08);
+        border-color: rgba(0, 150, 255, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(0, 150, 255, 0.75), inset 0 0 8px rgba(0, 150, 255, 0.15);
+        border-color: rgba(0, 150, 255, 0.65);
+    }
+}
+
+/* Animación sutil y elegante de borrado cuando se elimina código */
+.ast-tree li.node-deleting {
+    animation: astNodeDelete 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.ast-tree li.node-deleting > summary,
+.ast-tree li.node-deleting > .leaf-node {
+    background: rgba(255, 75, 75, 0.22) !important;
+    border: 1px solid rgba(255, 75, 75, 0.45) !important;
+    color: #ff8585 !important;
+}
+
+@keyframes astNodeDelete {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        max-height: 250px;
+        margin-top: 3px;
+        margin-bottom: 3px;
+    }
+    35% {
+        opacity: 0.85;
+        transform: translateX(-10px) scale(0.98);
+        background: rgba(255, 75, 75, 0.15);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-24px) scale(0.92);
+        max-height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+}
+
+/* Animación sutil de corrección/reorganización del árbol */
+.ast-tree.tree-correcting {
+    animation: astTreeCorrect 0.35s ease-out;
+}
+
+@keyframes astTreeCorrect {
+    0% {
+        opacity: 0.75;
+        transform: translateY(-3px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
