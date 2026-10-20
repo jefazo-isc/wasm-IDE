@@ -185,9 +185,9 @@ function actualizarContadorLineas() {
         currentLineCount = lines;
         let html = '';
         for (let i = 1; i <= lines; i++) {
-            html += i + '\n';
+            html += `<span data-line="${i}">${i}</span>\n`;
         }
-        dom.lineNumbers.textContent = html;
+        dom.lineNumbers.innerHTML = html;
         synchronizeScrollbarOffset();
     }
 }
@@ -347,6 +347,25 @@ function irALinea(linea) {
     }
 }
 
+// Resaltado de líneas en el gutter desde la tabla de símbolos
+function resaltarLineasGutter(lineas) {
+    limpiarResaltadoGutter();
+    const dom = window.DOM || {};
+    if (!dom.lineNumbers) return;
+    lineas.forEach(l => {
+        const span = dom.lineNumbers.querySelector(`span[data-line="${l}"]`);
+        if (span) span.classList.add('line-highlight');
+    });
+}
+
+function limpiarResaltadoGutter() {
+    const dom = window.DOM || {};
+    if (!dom.lineNumbers) return;
+    dom.lineNumbers.querySelectorAll('.line-highlight').forEach(el => {
+        el.classList.remove('line-highlight');
+    });
+}
+
 // Exposición global
 window.applySyntaxHighlighting = applySyntaxHighlighting;
 window.setFilename = setFilename;
@@ -364,3 +383,6 @@ window.highlightMatchingBrackets = highlightMatchingBrackets;
 window.synchronizeScrollbarOffset = synchronizeScrollbarOffset;
 window.limpiarPaneles = limpiarPaneles;
 window.irALinea = irALinea;
+window.resaltarLineasGutter = resaltarLineasGutter;
+window.limpiarResaltadoGutter = limpiarResaltadoGutter;
+

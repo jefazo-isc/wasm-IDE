@@ -145,6 +145,19 @@
     cursor: pointer;
 }
 
+.line-numbers span {
+    transition: color 0.15s, background 0.15s, text-shadow 0.15s;
+    border-radius: 3px;
+    padding: 0 2px;
+}
+
+.line-numbers span.line-highlight {
+    color: var(--accent-primary);
+    font-weight: bold;
+    text-shadow: 0 0 6px var(--accent-primary);
+    background: rgba(86, 156, 214, 0.15);
+}
+
 .code-area {
     position: relative;
     flex: 1;

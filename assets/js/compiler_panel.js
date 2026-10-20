@@ -406,26 +406,40 @@ async function compilarFase(fase, esTiempoReal = false) {
             const data = res;
             let html = `
                 <div class="panel-header-sticky" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 11px; color: var(--text-muted);">Variables e identificadores detectados</div>
-                    <button class="btn-reload" onclick="compilarFase('simbolos')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                    <div style="font-size: 11px; color: var(--text-muted);">Variables e identificadores detectados${esTiempoReal ? ' <span style="color: var(--accent-success); font-weight: 600;">● En vivo</span>' : ''}</div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn-reload" onclick="compilarFase('simbolos')" title="Refrescar" style="padding: 3px 8px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i></button>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table class="lexical-table">
                         <thead>
-                            <tr><th>Identificador</th><th>Tipo / Contexto</th><th>Líneas de Aparición</th></tr>
+                            <tr><th>Identificador</th><th>Tipo / Contexto</th><th>Apariciones</th><th>Líneas de Aparición</th></tr>
                         </thead>
                         <tbody>
             `;
             if (!data.simbolos || data.simbolos.length === 0) {
-                html += `<tr><td colspan="3" style="text-align: center; font-style: italic; color: var(--text-muted);">No se detectaron símbolos</td></tr>`;
+                html += `<tr><td colspan="4" style="text-align: center; font-style: italic; color: var(--text-muted);">No se detectaron símbolos</td></tr>`;
             } else {
                 data.simbolos.forEach(simbolo => {
                     const safeId = simbolo.identificador.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const lineasArr = simbolo.lineas ? simbolo.lineas.split(',').map(l => l.trim()).filter(l => l) : [];
+                    const totalApariciones = lineasArr.length;
+                    // Líneas únicas para el resaltado del gutter
+                    const lineasUnicas = [...new Set(lineasArr.map(l => parseInt(l, 10)))];
+                    const lineasJSON = JSON.stringify(lineasUnicas);
+                    // Crear links clickables para cada línea
+                    const lineasClickables = lineasArr.map(l =>
+                        `<span class="badge-tipo badge-number" style="cursor:pointer; margin: 1px 2px; padding: 1px 6px; font-size: 11px;" onclick="irALinea(${parseInt(l, 10)}); event.stopPropagation();" title="Ir a línea ${l}">${l}</span>`
+                    ).join(' ');
                     html += `
-                        <tr class="rgb-table-row">
+                        <tr class="rgb-table-row" onclick="irALinea(${parseInt(lineasArr[0] || '1', 10)})"
+                            onmouseenter="resaltarLineasGutter(${lineasJSON.replace(/"/g, '&quot;')})"
+                            onmouseleave="limpiarResaltadoGutter()">
                             <td><strong>${safeId}</strong></td>
                             <td><span class="badge-tipo badge-id">${simbolo.tipo}</span></td>
-                            <td style="font-family: var(--font-mono);">${simbolo.lineas}</td>
+                            <td style="text-align: center;"><span class="badge-tipo badge-keyword" style="font-size: 11px; padding: 1px 8px;">${totalApariciones}</span></td>
+                            <td style="font-family: var(--font-mono);">${lineasClickables}</td>
                         </tr>
                     `;
                 });

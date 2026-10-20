@@ -1,6 +1,11 @@
 /**
  * IDE Indómito - Generador de Tabla de Símbolos basado en Árbol Sintáctico (AST)
  * Fase 1: Construcción en Preorden, Tabla Hash y Rechazo Estricto de no-declarados
+ *
+ * NOTA: La maestra quiere que si una variable se repite en la misma línea,
+ * el número de línea se duplique en la tabla de símbolos.
+ * Ejemplo: "x = x + x;" en línea 3 → Líneas de aparición: 3, 3, 3
+ * Por eso se usa el Lexer para contar TODAS las apariciones léxicas reales.
  */
 const SymbolTableGenerator = {
     generar(codigo, astResult) {
@@ -21,6 +26,7 @@ const SymbolTableGenerator = {
         }
 
         // 1. Recorrido en Preorden sobre el AST para construir memoria contextual (atributos heredados)
+        //    Esto solo sirve para DECLARAR las variables y obtener su tipo.
         const recolectarDeclaracionesPreorden = (nodo) => {
             if (!nodo) return;
 
@@ -30,7 +36,7 @@ const SymbolTableGenerator = {
             if (name.includes('Programa Principal') || name.toLowerCase().includes('main')) {
                 tablaHash['main'] = {
                     tipo: 'Punto de Entrada',
-                    lineas: [linea]
+                    lineas: []
                 };
             }
 
@@ -44,17 +50,11 @@ const SymbolTableGenerator = {
                 nodo.children.forEach(c => {
                     if (c.name && c.name.startsWith('ID: ')) {
                         const id = c.name.replace('ID: ', '').trim();
-                        const l = c.linea || linea;
-                        if (id) {
-                            if (!tablaHash[id]) {
-                                tablaHash[id] = {
-                                    tipo: tipoHeredado,
-                                    lineas: []
-                                };
-                            }
-                            if (l && !tablaHash[id].lineas.includes(l)) {
-                                tablaHash[id].lineas.push(l);
-                            }
+                        if (id && !tablaHash[id]) {
+                            tablaHash[id] = {
+                                tipo: tipoHeredado,
+                                lineas: []
+                            };
                         }
                     }
                 });
@@ -65,85 +65,54 @@ const SymbolTableGenerator = {
             }
         };
 
-        // 2. Registro de líneas de uso bajo la Regla Estricta (Rechazar variables no declaradas)
-        const registrarUsos = (nodo) => {
-            if (!nodo) return;
-
-            const name = nodo.name || '';
-            const linea = nodo.linea || 1;
-
-            const intentarRegistrarUso = (id, l) => {
-                const idLimpio = (id || '').trim();
-                if (!idLimpio || idLimpio === 'true' || idLimpio === 'false') return;
-                // Solo registrar uso si la variable ya fue declarada previamente en la tabla hash
-                if (tablaHash[idLimpio]) {
-                    if (l && !tablaHash[idLimpio].lineas.includes(l)) {
-                        tablaHash[idLimpio].lineas.push(l);
-                    }
-                }
-            };
-
-            if (name.startsWith('Asignación') && nodo.children) {
-                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
-                if (varHijo) {
-                    const id = varHijo.name.replace('Variable: ', '').trim();
-                    intentarRegistrarUso(id, varHijo.linea || linea);
-                }
-            } else if ((name.startsWith('Incremento') || name.startsWith('Decremento')) && nodo.children) {
-                const varHijo = nodo.children.find(c => c.name && c.name.startsWith('Variable: '));
-                if (varHijo) {
-                    const id = varHijo.name.replace('Variable: ', '').trim();
-                    intentarRegistrarUso(id, varHijo.linea || linea);
-                }
-            } else if (name.startsWith('Sentencia IN') && nodo.children) {
-                nodo.children.forEach(c => {
-                    if (c.name && c.name.startsWith('ID: ')) {
-                        const id = c.name.replace('ID: ', '').trim();
-                        intentarRegistrarUso(id, c.linea || linea);
-                    }
-                });
-            } else if (name.startsWith('Identificador: ')) {
-                const id = name.replace('Identificador: ', '').trim();
-                intentarRegistrarUso(id, linea);
-            }
-
-            if (nodo.children && Array.isArray(nodo.children)) {
-                nodo.children.forEach(registrarUsos);
-            }
-        };
-
         if (ast) {
             recolectarDeclaracionesPreorden(ast);
-            registrarUsos(ast);
         }
 
-        // Si la tabla quedó vacía y se dispone de tokens léxicos (fallback)
-        if (Object.keys(tablaHash).length === 0 && typeof Lexer !== 'undefined') {
+        // 2. Conteo de apariciones léxicas reales usando los tokens del Lexer.
+        //    Así la maestra quiere: si "x" aparece 3 veces en la línea 5,
+        //    la tabla muestra "5, 5, 5" (el número se duplica por cada aparición).
+        if (typeof Lexer !== 'undefined') {
             const lex = Lexer.analizar(codigo);
             const tokens = lex.tokens || [];
-            let i = 0;
-            while (i < tokens.len) {
-                const tok = tokens[i];
-                if (tok.tipo === 'RESERVADA' && ['int', 'float', 'bool', 'real'].includes(tok.lexema)) {
-                    const tipo = tok.lexema;
-                    i++;
-                    while (i < tokens.length) {
-                        const nxt = tokens[i];
-                        if (nxt.tipo === 'ID') {
-                            if (!tablaHash[nxt.lexema]) {
-                                tablaHash[nxt.lexema] = { tipo, lineas: [] };
-                            }
-                            tablaHash[nxt.lexema].lineas.push(nxt.linea);
-                        } else if (nxt.lexema === ';') {
-                            break;
-                        }
+
+            // Si el AST no encontró declaraciones, intentar con el fallback léxico
+            if (Object.keys(tablaHash).length === 0) {
+                let i = 0;
+                while (i < tokens.length) {
+                    const tok = tokens[i];
+                    if (tok.tipo === 'RESERVADA' && ['int', 'float', 'bool', 'real'].includes(tok.lexema)) {
+                        const tipo = tok.lexema;
                         i++;
+                        while (i < tokens.length) {
+                            const nxt = tokens[i];
+                            if (nxt.tipo === 'ID') {
+                                if (!tablaHash[nxt.lexema]) {
+                                    tablaHash[nxt.lexema] = { tipo, lineas: [] };
+                                }
+                            } else if (nxt.lexema === ';') {
+                                break;
+                            }
+                            i++;
+                        }
+                    } else if (tok.tipo === 'RESERVADA' && tok.lexema === 'main') {
+                        if (!tablaHash['main']) {
+                            tablaHash['main'] = { tipo: 'Punto de Entrada', lineas: [] };
+                        }
                     }
-                } else if (tok.tipo === 'RESERVADA' && tok.lexema === 'main') {
-                    tablaHash['main'] = { tipo: 'Punto de Entrada', lineas: [tok.linea] };
+                    i++;
                 }
-                i++;
             }
+
+            // Recorrer TODOS los tokens y registrar CADA aparición de cada ID declarado.
+            // Esto garantiza que si "x" aparece 3 veces en la línea 5, se registre 5, 5, 5.
+            tokens.forEach(tok => {
+                if (tok.tipo === 'ID' && tablaHash[tok.lexema]) {
+                    tablaHash[tok.lexema].lineas.push(tok.linea);
+                } else if (tok.tipo === 'RESERVADA' && tok.lexema === 'main' && tablaHash['main']) {
+                    tablaHash['main'].lineas.push(tok.linea);
+                }
+            });
         }
 
         // Formato para la vista del IDE
