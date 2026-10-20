@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDE Indómito - Compilador TINY (WebAssembly Edition)</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016_mod4">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <div class="menubar">
@@ -221,20 +224,32 @@
     <input type="hidden" id="current_filename" value="/testLexico.txt">
 
     <!-- Módulos del Compilador Client-side -->
-    <script src="assets/js/compiler/lexer.js?v=3"></script>
-    <script src="assets/js/compiler/parser.js?v=3"></script>
-    <script src="assets/js/compiler/semantic.js?v=3"></script>
-    <script src="assets/js/compiler/symbols.js?v=3"></script>
-    <script src="assets/js/compiler/intermediate.js?v=3"></script>
-    <script src="assets/js/compiler/vm.js?v=3"></script>
-    <script src="assets/js/compiler/engine.js?v=3"></script>
+    <script src="assets/js/compiler/lexer.js?v=20261018_3"></script>
+    <script src="assets/js/compiler/parser.js?v=20261018_3"></script>
+    <script src="assets/js/compiler/semantic.js?v=20261018_5"></script>
+    <script src="assets/js/compiler/symbols.js?v=20261018_3"></script>
+    <script src="assets/js/compiler/intermediate.js?v=20261018_3"></script>
+    <script src="assets/js/compiler/vm.js?v=20261018_3"></script>
+    <script src="assets/js/compiler/engine.js?v=20261018_5"></script>
     
     <!-- Sistema de Archivos e IA -->
-    <script src="assets/js/fs/virtual_fs.js?v=3"></script>
-    <script src="assets/js/ai/ai_client.js?v=3"></script>
+    <script src="assets/js/fs/virtual_fs.js?v=20261018_3"></script>
+    <script src="assets/js/ai/ai_client.js?v=20261018_3"></script>
     
-    <!-- Lógica Principal del Editor y UI -->
-    <script src="assets/js/main.js?v=3"></script>
-    <script src="assets/js/ai.js?v=3"></script>
+    <!-- Componentes de Interfaz y Diálogos -->
+    <script src="assets/js/ui_utils.js?v=20261018_3"></script>
+
+    <!-- Paneles y Visualizadores del Compilador -->
+    <script src="assets/js/compiler_panel.js?v=20261018_3"></script>
+
+    <!-- Motor del Editor de Código -->
+    <script src="assets/js/editor.js?v=20261018_3"></script>
+
+    <!-- Gestor de Workspace, Pestañas y Archivos -->
+    <script src="assets/js/workspace_manager.js?v=20261018_3"></script>
+
+    <!-- Orquestador Principal del IDE -->
+    <script src="assets/js/main.js?v=20261018_3"></script>
+    <script src="assets/js/ai.js?v=20261018_3"></script>
 </body>
 </html>

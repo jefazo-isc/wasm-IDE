@@ -86,4 +86,32 @@ mod tests {
             println!("  Err: Ln {} Col {} {} ({})", err.linea, err.col, err.msg, err.lexema);
         }
     }
+
+    #[test]
+    fn test_prueba_sintactico_modif() {
+        let code = include_str!("../../pruebaSintacticoModif.txt");
+        let lex_res = lexer::analizar(code);
+        println!("Lexer errors on pruebaSintacticoModif.txt: {}", lex_res.errores.len());
+        let mut parser = parser::Parser::new(lex_res.tokens);
+        let parse_res = parser.parse();
+        println!("Parser errors on pruebaSintacticoModif.txt: {}", parse_res.errores.len());
+        for err in &parse_res.errores {
+            println!("  Parser Err: Ln {} Col {} {}", err.linea, err.col, err.msg);
+        }
+        let sem_res = semantic::analizar_con_ast(code, parse_res.tree.as_ref());
+        println!("Semantic errors: {}", sem_res.errores.len());
+        fn print_tree(nodo: &parser::AstNode, nivel: usize) {
+            println!("{}{}", "  ".repeat(nivel), nodo.name);
+            if let Some(ch) = &nodo.children {
+                for c in ch {
+                    print_tree(c, nivel + 1);
+                }
+            }
+        }
+        if let Some(t) = &sem_res.annotated_tree {
+            print_tree(t, 0);
+        }
+    }
 }
+
+

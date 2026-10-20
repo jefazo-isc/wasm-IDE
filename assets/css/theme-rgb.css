@@ -1,0 +1,157 @@
+/* ==========================================================================
+   TEMA RGB (Neón y Animaciones)
+   ========================================================================== */
+
+@keyframes border-glow {
+
+    0%,
+    100% {
+        border-color: #00ffff;
+        box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    }
+
+    25% {
+        border-color: #00ff00;
+        box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+
+    50% {
+        border-color: #ffff00;
+        box-shadow: 0 0 5px rgba(255, 255, 0, 0.3);
+    }
+
+    75% {
+        border-color: #ff00ff;
+        box-shadow: 0 0 5px rgba(255, 0, 255, 0.3);
+    }
+}
+
+@keyframes text-glow {
+
+    0%,
+    100% {
+        color: #00ffff;
+        text-shadow: 0 0 5px #00ffff;
+    }
+
+    25% {
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+    }
+
+    50% {
+        color: #ffff00;
+        text-shadow: 0 0 5px #ffff00;
+    }
+
+    75% {
+        color: #ff00ff;
+        text-shadow: 0 0 5px #ff00ff;
+    }
+}
+
+@keyframes bg-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes error-pulse {
+
+    0%,
+    100% {
+        color: #ff3333;
+        border-left-color: #ff0000;
+        background: rgba(255, 0, 0, 0.1);
+    }
+
+    50% {
+        color: #ff0000;
+        border-left-color: #ff3333;
+        background: rgba(255, 0, 0, 0.2);
+        box-shadow: 0 0 10px #ff0000;
+    }
+}
+
+body.rgb-theme {
+    --bg-primary: #0a0a0f;
+    --bg-editor: var(--bg-primary);
+    --bg-secondary: #12121a;
+    --bg-tertiary: #0a0a0a;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --border-color: #333333;
+    --accent-primary: #00ffff;
+    --accent-secondary: #ff00ff;
+    --shadow-color: rgba(0, 255, 255, 0.3);
+}
+
+body.rgb-theme .menubar,
+body.rgb-theme .editor-section,
+body.rgb-theme .file-explorer,
+body.rgb-theme .right-panels,
+body.rgb-theme .bottom-panels,
+body.rgb-theme .resizer-vertical,
+body.rgb-theme .resizer-horizontal,
+body.rgb-theme input,
+body.rgb-theme select,
+body.rgb-theme button {
+    animation: border-glow 8s ease-in-out infinite;
+    background: var(--bg-primary) !important;
+}
+
+body.rgb-theme .tab,
+body.rgb-theme .dropbtn,
+body.rgb-theme .menu-btn,
+body.rgb-theme .explorer-header,
+body.rgb-theme .explorer-item,
+body.rgb-theme .interactive-log-line,
+body.rgb-theme .syntax-color1,
+body.rgb-theme .syntax-color2,
+body.rgb-theme .syntax-color3,
+body.rgb-theme .syntax-color4,
+body.rgb-theme .syntax-color5,
+body.rgb-theme .syntax-color6,
+body.rgb-theme .syntax-string {
+    animation: text-glow 8s ease-in-out infinite;
+    font-weight: bold;
+}
+
+body.rgb-theme .syntax-color2 {
+    animation-delay: -1s;
+}
+
+body.rgb-theme .syntax-color3 {
+    animation-delay: -2s;
+    font-style: italic;
+}
+
+body.rgb-theme .syntax-color4 {
+    animation-delay: -3s;
+}
+
+body.rgb-theme .syntax-string {
+    animation-delay: -2.5s;
+}
+
+body.rgb-theme .status-bar {
+    background: linear-gradient(90deg, #00ffff, #00ff00, #ffff00, #ff00ff, #00ffff);
+    background-size: 400% 100%;
+    animation: bg-flow 8s ease infinite;
+    color: #000 !important;
+    text-shadow: none;
+}
+
+body.rgb-theme .error-log {
+    animation: error-pulse 1s ease-in-out infinite;
+    border-left: 3px solid;
+}
+

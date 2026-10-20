@@ -1,0 +1,251 @@
+/* ==========================================================================
+   DISEÑO DE TABLAS (ESPECIAL PARA JSON Y TOKENS)
+   ========================================================================== */
+.table-container {
+    padding: 0 12px 12px 12px;
+}
+
+.lexical-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-align: left;
+}
+
+.lexical-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-tertiary);
+    padding: 10px;
+    border-bottom: 2px solid var(--accent-primary);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 11px;
+    z-index: 5;
+}
+
+.lexical-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lexical-table tbody tr {
+    cursor: pointer;
+    transition: background 0.2s, border-left 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.lexical-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-left-color: var(--accent-primary);
+}
+
+/* Badges Visuales para los Tokens */
+.badge-tipo {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.badge-keyword {
+    background: rgba(86, 156, 214, 0.2);
+    color: #569cd6;
+    border: 1px solid #569cd6;
+}
+
+.badge-id {
+    background: rgba(156, 220, 254, 0.15);
+    color: black;
+    border: 1px solid rgba(156, 220, 254, 0.5);
+}
+
+.badge-number {
+    background: rgba(181, 206, 168, 0.15);
+    color: #b5cea8;
+    border: 1px solid rgba(181, 206, 168, 0.5);
+}
+
+.badge-string {
+    background: rgba(206, 145, 120, 0.15);
+    color: #ce9178;
+    border: 1px solid rgba(206, 145, 120, 0.5);
+}
+
+.badge-operator {
+    background: rgba(212, 212, 212, 0.1);
+    color: #d4d4d4;
+    border: 1px solid rgba(212, 212, 212, 0.4);
+}
+
+.badge-comment {
+    background: rgba(106, 153, 85, 0.15);
+    color: #6a9955;
+    border: 1px solid rgba(106, 153, 85, 0.5);
+}
+
+@keyframes error-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.badge-error {
+    background: rgba(255, 0, 0, 0.15);
+    color: #ff6666;
+    border: 1px solid #ff4444;
+    animation: error-pulse 1.5s ease-in-out infinite;
+}
+
+.badge-default {
+    background: rgba(204, 204, 204, 0.1);
+    color: #cccccc;
+    border: 1px solid rgba(204, 204, 204, 0.4);
+}
+
+.lexema-cell {
+    font-weight: bold;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* Ajustes del Panel Header para la Tabla */
+.panel-header-sticky {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    padding: 10px 12px;
+    z-index: 10;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-title-glow {
+    color: var(--accent-primary);
+    font-weight: bold;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    letter-spacing: 0.5px;
+}
+
+.btn-reload {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-reload:hover {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+}
+
+/* Logs Interactivos Generales */
+.interactive-log-line {
+    padding: 7px 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, padding-left 0.2s, border-left-color 0.2s;
+    border-left: 3px solid transparent;
+    margin: 3px 10px;
+}
+
+.interactive-log-line:hover {
+    background: var(--bg-tertiary);
+    border-left-color: var(--accent-primary);
+    padding-left: 14px;
+}
+
+.error-log {
+    border-left-color: #ff4444;
+    background: rgba(255, 68, 68, 0.08);
+    color: #ff6b6b;
+}
+
+.error-log:hover {
+    background: rgba(255, 68, 68, 0.18);
+    color: #ff9999;
+    border-left-color: #ff2222;
+}
+
+body.light-theme .error-log {
+    border-left-color: #d32f2f;
+    background: rgba(211, 47, 47, 0.08);
+    color: #c62828;
+    font-weight: 600;
+}
+
+body.light-theme .error-log:hover {
+    background: rgba(211, 47, 47, 0.16);
+    color: #8e0000;
+    border-left-color: #b71c1c;
+}
+
+.success-log {
+    color: #66bb6a;
+    font-weight: bold;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    padding: 12px 14px;
+    border-radius: 5px;
+    background: rgba(76, 175, 80, 0.08);
+    border: 1px solid rgba(76, 175, 80, 0.25);
+    margin: 10px 12px;
+    display: flex;
+    align-items: center;
+}
+
+body.light-theme .success-log {
+    color: #2e7d32;
+    background: rgba(76, 175, 80, 0.1);
+    border-color: rgba(76, 175, 80, 0.35);
+}
+
+/* Comportamiento RGB específico para filas de tabla */
+body.rgb-theme .lexical-table tbody tr:hover {
+    border-left-color: var(--accent-primary);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+/* Soporte estándar para barras de desplazamiento (Firefox) */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-secondary);
+}
+
+/* Soporte para navegadores basados en WebKit (Chrome, Edge, Safari) */
+@supports selector(::-webkit-scrollbar) {
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+        border-left: 1px solid var(--border-color);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border: 3px solid var(--bg-secondary);
+        border-radius: 6px;
+    }
+}
+

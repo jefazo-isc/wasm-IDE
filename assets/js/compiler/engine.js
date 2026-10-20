@@ -8,6 +8,14 @@ let wasmModule = null;
 let wasmLoadAttempted = false;
 let wasmFailed = false;
 
+// Determinar la URL base de los archivos del compilador de forma compatible con scripts clásicos (sin import.meta)
+const _compilerScriptSrc = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src)
+    ? document.currentScript.src
+    : (typeof window !== 'undefined' && window.location ? window.location.href : '');
+const _compilerBaseUrl = _compilerScriptSrc
+    ? new URL('.', _compilerScriptSrc).href
+    : './assets/js/compiler/';
+
 const CompilerEngine = {
     async initWasm() {
         if (wasmFailed) return null;
@@ -19,9 +27,12 @@ const CompilerEngine = {
 
         if (!wasmInitPromise && !wasmLoadAttempted) {
             wasmLoadAttempted = true;
-            wasmInitPromise = import('./dist/ide_indomito_compiler.js')
+            const jsUrl = new URL('dist/ide_indomito_compiler.js?v=20261018_5', _compilerBaseUrl).href;
+            const wasmUrl = new URL('dist/ide_indomito_compiler_bg.wasm?v=20261018_5', _compilerBaseUrl).href;
+
+            wasmInitPromise = import(jsUrl)
                 .then(async (module) => {
-                    await module.default(); // Inicializa el entorno Wasm
+                    await module.default({ module_or_path: wasmUrl }); // Inicializa Wasm pasando objeto para evitar warning de parámetro deprecado
                     wasmModule = module;
                     return wasmModule;
                 })

@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* ==========================================================================
+   IDE INDÓMITO - VARIABLES Y CONFIGURACIÓN BASE
+   ========================================================================== */
+
+:root {
+    /* Tema Oscuro (Por defecto) */
+    --bg-primary: #1e1e1e;
+    --bg-editor: #000; /* no cambiar */
+    --bg-secondary: #252526;
+    --bg-tertiary: #333333;
+    --text-primary: #d4d4d4;
+    --text-secondary: #bbbbbb;
+    --text-muted: #888888;
+    --border-color: #444444;
+    --accent-primary: #007acc;
+    --accent-secondary: #005a9e;
+    --accent-hover: #004a80;
+    --shadow-color: rgba(0, 0, 0, 0.7);
+
+    /* Sintaxis Estándar */
+    --syntax-keyword: #569cd6;
+    --syntax-string: #ce9178;
+    --syntax-number: #b5cea8;
+    --syntax-comment: #6a9955;
+    --syntax-variable: #9cdcfe;
+    --syntax-operator: #d4d4d4;
+
+    --font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    --font-sans: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+}
+
+body.light-theme {
+    --bg-primary: #ffffff;
+    --bg-editor: var(--bg-primary);
+    --bg-secondary: #f3f3f3;
+    --bg-tertiary: #e5e5e5;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+    --border-color: #d4d4d4;
+    --accent-primary: #0066cc;
+    --accent-secondary: #0050a0;
+    --accent-hover: #004080;
+    --shadow-color: rgba(0, 0, 0, 0.15);
+
+    --syntax-keyword: #0000ff;
+    --syntax-string: #a31515;
+    --syntax-number: #098658;
+    --syntax-comment: #008000;
+    --syntax-variable: #001080;
+    --syntax-operator: #000000;
+}
+
