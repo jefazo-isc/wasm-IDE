@@ -428,7 +428,7 @@ async function compilarFase(fase, esTiempoReal = false) {
                     // Líneas únicas para el resaltado del gutter
                     const lineasUnicas = [...new Set(lineasArr.map(l => parseInt(l, 10)))];
                     const lineasJSON = JSON.stringify(lineasUnicas);
-                    // Crear links clickables para cada línea
+                    // Crear links clickables para cada línea (conservando todos los números duplicados)
                     const lineasClickables = lineasArr.map(l =>
                         `<span class="badge-tipo badge-number" style="cursor:pointer; margin: 1px 2px; padding: 1px 6px; font-size: 11px;" onclick="irALinea(${parseInt(l, 10)}); event.stopPropagation();" title="Ir a línea ${l}">${l}</span>`
                     ).join(' ');
