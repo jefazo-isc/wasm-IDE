@@ -1,11 +1,9 @@
 /**
- * IDE Indómito - Generador de Tabla de Símbolos basado en Árbol Sintáctico (AST)
- * Fase 1: Construcción en Preorden, Tabla Hash y Rechazo Estricto de no-declarados
+ * IDE Indómito - Generador de Tabla de Símbolos basado en Árbol Sintáctico (AST) y Léxico
+ * Fase 1: Construcción en Preorden, Tabla Hash y Registro de Apariciones Completo (incluyendo duplicados por línea)
  *
- * NOTA: La maestra quiere que si una variable se repite en la misma línea,
- * el número de línea se duplique en la tabla de símbolos.
- * Ejemplo: "x = x + x;" en línea 3 → Líneas de aparición: 3, 3, 3
- * Por eso se usa el Lexer para contar TODAS las apariciones léxicas reales.
+ * Registra cada aparición léxica real de un identificador en el arreglo de líneas.
+ * Ejemplo: "y = y + 1;" en la línea 9 registra: 9, 9.
  */
 const SymbolTableGenerator = {
     generar(codigo, astResult) {
@@ -25,13 +23,11 @@ const SymbolTableGenerator = {
             ast = res.tree;
         }
 
-        // 1. Recorrido en Preorden sobre el AST para construir memoria contextual (atributos heredados)
-        //    Esto solo sirve para DECLARAR las variables y obtener su tipo.
+        // 1. Recorrido en Preorden sobre el AST para recolectar las declaraciones de variables y su tipo
         const recolectarDeclaracionesPreorden = (nodo) => {
             if (!nodo) return;
 
             const name = nodo.name || '';
-            const linea = nodo.linea || 1;
 
             if (name.includes('Programa Principal') || name.toLowerCase().includes('main')) {
                 tablaHash['main'] = {
@@ -70,8 +66,7 @@ const SymbolTableGenerator = {
         }
 
         // 2. Conteo de apariciones léxicas reales usando los tokens del Lexer.
-        //    Así la maestra quiere: si "x" aparece 3 veces en la línea 5,
-        //    la tabla muestra "5, 5, 5" (el número se duplica por cada aparición).
+        // Se registran TODAS las apariciones de cada ID declarado (incluyendo números duplicados por línea).
         if (typeof Lexer !== 'undefined') {
             const lex = Lexer.analizar(codigo);
             const tokens = lex.tokens || [];
@@ -105,7 +100,6 @@ const SymbolTableGenerator = {
             }
 
             // Recorrer TODOS los tokens y registrar CADA aparición de cada ID declarado.
-            // Esto garantiza que si "x" aparece 3 veces en la línea 5, se registre 5, 5, 5.
             tokens.forEach(tok => {
                 if (tok.tipo === 'ID' && tablaHash[tok.lexema]) {
                     tablaHash[tok.lexema].lineas.push(tok.linea);
